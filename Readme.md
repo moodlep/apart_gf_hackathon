@@ -1,4 +1,6 @@
-APART Research Women in AI Hackathon with Goodfire
+APART Research 
+[Women in AI Safety Hackathon with Goodfire](https://www.apartresearch.com/event/women-in-ai-safety-hackathon)
+
 
 Extending an implementation of the Prisoner's Dilemma to a multi-agent setting, using Goodfire's Ember to control the agents. 
 
