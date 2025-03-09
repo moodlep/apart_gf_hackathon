@@ -157,7 +157,7 @@ class Agent():
         self.log.append(f"Model variant inspected")
 
         timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
-        with open(f"{folder}{self.name}_inspect_logs_{timestr}.log", 'w') as f:
+        with open(f"{folder}{self.name}_inspect_logs_{sim_type}_{timestr}.log", 'w') as f:
             f.write(f"Lookup: {lookup} \n")
             f.write(f"Top Features: {top_features} \n")
             f.write(f"Search Features: {search_features} \n")
