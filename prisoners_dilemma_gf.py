@@ -133,6 +133,44 @@ class Agent():
             self.game_history[-1].append(opposition_action)
         self.log.append(f"Recorded score {score} for round {len(self.game_history)}")
 
+    def inspect_model(self):
+        # Inspect the model variant to see what features are activated at the end of play
+        messages = [{"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": self.user_prompt.format(perceived_history=self.game_history, strategy=self.strategy)+AGENT_PROMPT_2}]
+        
+        context = self.client.features.inspect(messages=messages, model=self.variant)
+        lookup = list(context.lookup().items())[:20]
+        top_features = context.top(20)
+
+        # open properties file and for each property, get corresponding features, test model for each property
+        with open('properties.txt', 'r') as f:
+            properties = f.readlines()
+            search_features = []
+            for prop in properties:
+                if prop.strip():
+                    prop = prop.split(":")[0]  # get short form of property. eg. "cooperation"
+                    property_features = self.client.features.search(prop, model=self.variant, top_k=15) # get features for property
+                    context = self.client.features.inspect(messages=messages, model=self.variant, features=property_features) # test model with property features
+                    # retrieve the top k activating property features in the context:
+                    search_features.append({"property": prop, "features": context.top(15)})
+
+        self.log.append(f"Model variant inspected")
+        return {"lookup": lookup, "top_features": top_features, "search_features": search_features}
+
+    def save(self, folder = "data/"):
+        timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
+        with open(f"{folder}game_logs_{timestr}.log", 'w') as f:
+            f.write(f"Agent logs: {self.log} \n")
+            f.write(f"Game history: {self.game_history} \n")
+            f.write(f"Agent inspect: {self.inspect_model()} \n")
+
+        # Save model variants to json file
+        with open(f"{folder}variant{timestr}.json", 'w') as f:
+            f.write(json.dumps(self.variant.json()))
+            
+        return timestr
+
+    
     def get_manual_features(self):
         # Get features for manual model steering: (used for TFT strategy)
         self.coop_features, self.def_features = get_prisoners_dilemma_features()
@@ -228,7 +266,10 @@ def run_asymmetry_simulation(num_rounds):
             "B Reason": b_reason
         })
 
-    return pd.DataFrame(history), a.game_history, b.game_history, a.log, b.log
+    a.save()
+    b.save()
+
+    return pd.DataFrame(history)
 
 def run_asymmetry_simulation_tft(num_rounds):
     
@@ -279,20 +320,8 @@ def run_asymmetry_simulation_tft(num_rounds):
 
 # Example Simulation
 num_rounds = 2  # Simulate 50 rounds as an example
-results_df_asymmetry, a_gh, b_gh, alogs, blogs = run_asymmetry_simulation(num_rounds)
+results_df_asymmetry = run_asymmetry_simulation(num_rounds)
 # results_df_asymmetry, a_gh, b_gh, alogs, blogs = run_asymmetry_simulation_tft(num_rounds)
 
-print(results_df_asymmetry)
-print("------------------Agent A------------------")
-print(a_gh)
-print("------------------Agent B------------------")
-print(b_gh)
-
 timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
-with open(f"data/game_logs_{timestr}.log", 'w') as f:
-    f.write(f"Agent A logs: {alogs} \n")
-    f.write(f"Agent B logs: {blogs} \n") 
-    f.write(f"Game history: {a_gh} \n")
-    f.write(f"Game history: {b_gh} \n")      
-
 results_df_asymmetry.to_csv(f"data/game_results_{timestr}.csv", index=False)
