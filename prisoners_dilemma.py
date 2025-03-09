@@ -273,9 +273,9 @@ def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type):
             round_log[f"A_{agent_idx} Reason"] = reasons[agent_idx]
             if moves[agent_idx] == "C":
                 coop_rate += 1
+        history.append(round_log)
         for agent in agents:
             agent.save(sim_type)
-        history.append(round_log)
 
     return pd.DataFrame(history), agents, coop_rate/(num_rounds*len(agents))
 
