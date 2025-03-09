@@ -305,9 +305,10 @@ if __name__ == '__main__':
         with open(f"./results/{sim_type}_agent_{i}_game_history_{num_rounds}.csv", "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerows(agents[i].game_history)
-        print("**********")
-        print(agents[i].log)
         with open(f"./results/{sim_type}_agent_{i}_log_{num_rounds}.csv", "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerows(agents[i].log)
-        
+        print("**********")
+        print(agents[i].log)
+        with open(f"./results/{sim_type}_agent_{i}_log_{num_rounds}.txt", "w") as f:
+            f.write('\n\n'.join(agents[i].log))
