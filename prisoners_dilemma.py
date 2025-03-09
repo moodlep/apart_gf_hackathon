@@ -5,7 +5,6 @@ import json
 import pandas as pd
 from datetime import datetime
 import argparse
-import csv
 
 from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT, ANALYSE_SYSTEM_PROMPT, valid_actions
 
@@ -128,11 +127,11 @@ class Agent():
             return "C", "Error in generating game response."
         return move, reason
     
-    def get_round_info(self, score, opposition_action="NA"):
+    def get_round_info(self, score, other_agents_actions=[]):
         self.game_history[-1].append(score)
-        if opposition_action != "NA":
-            self.game_history[-1].append(opposition_action)
-        self.log.append(f"Recorded score {score} for round {len(self.game_history)}")
+        if len(other_agents_actions) > 0:
+            self.game_history[-1].extend(other_agents_actions)
+        self.log.append(f"Recorded score {score} for round {len(self.game_history)} and other agents moves: {other_agents_actions}")
 
     def inspect_model(self, folder = "data/"):
         # Inspect the model variant to see what features are activated at the end of play
@@ -263,9 +262,11 @@ def run_simulation(num_rounds, agents_strategies, agents_steering):
         round_log = {"Round": round_number}
         for agent_idx, agent_payoff in enumerate(agent_payoffs):
             agent_scores[agent_idx] += agent_payoff
+            other_agents_actions = []
             for i, other_agen in enumerate(agents):
                 if i != agent_idx:
-                    agents[agent_idx].game_history[-1].append(moves[i])
+                    other_agents_actions.append(moves[i])
+            agents[agent_idx].get_round_info(agent_payoff, other_agents_actions)
             round_log[f"A_{agent_idx} Move"] = "Stay Silent" if moves[agent_idx] == "C" else "Confess"
             round_log[f"A_{agent_idx} Payoff"] = agent_payoff
             round_log[f"A_{agent_idx} Cumulative"] = agent_scores[agent_idx]
