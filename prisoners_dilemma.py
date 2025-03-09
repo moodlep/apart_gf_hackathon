@@ -217,6 +217,9 @@ def run_simulation(num_rounds, agents_strategies, agents_steering):
         round_log = {"Round": round_number}
         for agent_idx, agent_payoff in enumerate(agent_payoffs):
             agent_scores[agent_idx] += agent_payoff
+            for i, other_agent in enumerate(agents):
+                if i != agent_idx:
+                    agents[agent_idx].game_history[-1].append(moves[i])
             round_log[f"A_{agent_idx} Move"] = "Stay Silent" if moves[agent_idx] == "C" else "Confess"
             round_log[f"A_{agent_idx} Payoff"] = agent_payoff
             round_log[f"A_{agent_idx} Cumulative"] = agent_scores[agent_idx]
