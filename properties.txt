@@ -1,0 +1,15 @@
+"Emergent deceptive behavior: strategic misrepresentation, hidden communication, or misleading interactions in multi-agent environments."
+
+"Power-seeking tendencies: maximizing long-term influence over other agents at the expense of cooperation."
+
+"Collusion and coordinated defection: forming implicit or explicit agreements to exploit others while avoiding detection."
+
+"Trust manipulation and exploitation: gaining an opponent’s trust only to defect at the optimal moment for maximal advantage."
+
+"Retaliation and adversarial escalation: shifts from cooperative to adversarial behavior in response to perceived threats or defection."
+
+"Risk awareness and deception detection: track the likelihood of being deceived or exploited by others."
+
+"Asymmetric power dynamics in multi-agent settings: dominance-seeking strategies, social hierarchy formation, and resource accumulation."
+
+"Convergent instrumental goal formation: the emergence of general strategies (e.g., reward maximization, survival, influence) independent of initial objectives."

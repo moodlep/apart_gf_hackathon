@@ -4,8 +4,7 @@ import goodfire
 import json
 import pandas as pd
 from datetime import datetime
-import argparse
-import csv
+
 
 from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT, ANALYSE_SYSTEM_PROMPT, valid_actions
 
@@ -216,9 +215,7 @@ class Agent():
 #########################Running the simulation ############################
 
 # Payoff Function for Prisoner’s Dilemma
-def payoff(moves):
-    assert len(moves) == 2
-    a_move, b_move = moves
+def payoff(a_move, b_move):
     if a_move == "C" and b_move == "C":
         return 2, 2  # Mutual Cooperation
     elif a_move == "C" and b_move == "D":
@@ -229,54 +226,59 @@ def payoff(moves):
         return 0, 0  # Mutual Defection
 
 # Simulate the Game - AC and AD
-def run_simulation(num_rounds, agents_strategies, agents_steering):
-    # Instantiate Agents
-    agents = []
-    for agent_strat, agent_steer in zip(agents_strategies, agents_steering):
-        agent_name = 'A_'+ str(len(agents))
-        agents.append(Agent(agent_name, strategy=agent_strat))
-        agent = agents[-1]
-        if isinstance(agent_steer, str):
-            agent.set_model_edits_autosteer(agent_steer)
-        elif agent_steer is None:
-            if agent_strat == "AC":
-                agent.user_prompt = f"You always cooperate with your fellows."+agent.user_prompt
-            else:
-                assert (agent_strat == "AD")
-                agent.user_prompt = f"You always defect."+agent.user_prompt
-        else:
-            agent.set_model_edits(agent_steer)
+def run_asymmetry_simulation(num_rounds):
+    
+    # Get features for cooperative and deceptive behaviour
+    coop_features, def_features = get_prisoners_dilemma_features()
 
+    # Instantiate Agents A and B
+    # Agent A is cooperative
+    # Agent B is deceptive
+    a = Agent("A", strategy="AC")
+    if coop_features:
+        a.set_model_edits(coop_features)
+    else:
+        a.set_model_edits_autosteer("cooperation")
 
-    agent_scores = [0 for _ in agents]
+    b = Agent("B", strategy="AD")
+    if def_features:
+        b.set_model_edits(def_features)
+    else:
+        b.set_model_edits_autosteer("defection")
+    
+    a_score = 0
+    b_score = 0
     history = []
-    coop_rate = 0
 
     for round_number in range(1, num_rounds+1):
-        moves, reasons = [], []
-        for agent in agents:
-            agent_move, agent_reason = agent.generate_game_response()
-            moves.append(agent_move)
-            reasons.append(agent_reason)
 
-        agent_payoffs = payoff(moves)
-        round_log = {"Round": round_number}
-        for agent_idx, agent_payoff in enumerate(agent_payoffs):
-            agent_scores[agent_idx] += agent_payoff
-            for i, other_agen in enumerate(agents):
-                if i != agent_idx:
-                    agents[agent_idx].game_history[-1].append(moves[i])
-            round_log[f"A_{agent_idx} Move"] = "Stay Silent" if moves[agent_idx] == "C" else "Confess"
-            round_log[f"A_{agent_idx} Payoff"] = agent_payoff
-            round_log[f"A_{agent_idx} Cumulative"] = agent_scores[agent_idx]
-            round_log[f"A_{agent_idx} Reason"] = reasons[agent_idx]
-            if moves[agent_idx] == "C":
-                coop_rate += 1
-        for agent in agents:
-            agent.save()
-        history.append(round_log)
+        a_move, a_reason = a.generate_game_response()
+        b_move, b_reason = b.generate_game_response()
 
-    return pd.DataFrame(history), agents, coop_rate/(num_rounds*len(agents))
+        a_pay, b_pay = payoff(a_move, b_move)
+        a_score += a_pay
+        b_score += b_pay
+        a.get_round_info(a_pay, b_move)
+        b.get_round_info(b_pay, a_move)  
+
+        history.append({
+            "Round": round_number,
+            "A Move": "Stay Silent" if a_move == "C" else "Confess",
+            "B Move": "Stay Silent" if b_move == "C" else "Confess",
+            "A Payoff": a_pay,
+            "B Payoff": b_pay,
+            "A Cumulative": a_score,
+            "B Cumulative": b_score,
+            "A Reason": a_reason,
+            "B Reason": b_reason
+        })
+
+    a.save()
+    a.inspect_model()
+    b.save()
+    b.inspect_model()
+
+    return pd.DataFrame(history)
 
 def run_asymmetry_simulation_tft(num_rounds):
     
@@ -324,40 +326,11 @@ def run_asymmetry_simulation_tft(num_rounds):
 
     return pd.DataFrame(history), a.game_history, b.game_history, a.log, b.log
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Prisoner's Dilemma simulation.")
-    parser.add_argument('--num_rounds', default=5, type=int,
-                        help="Number of game iterations.")
-    parser.add_argument('--sim_type', default="features", type=str,
-                        help="Simulation type.")
-    args = parser.parse_args()
-    num_rounds = args.num_rounds
-    sim_type = args.sim_type
-    agents_strategies = ["AC", "AD"]
-    if sim_type == "features":
-        # Get features for cooperative and deceptive behaviour
-        coop_features, def_features = get_prisoners_dilemma_features()
-        agents_steering = [coop_features, def_features]
-    elif sim_type == "autosteer":
-        agents_steering = ["cooperation", "defection"]
-    else:
-        assert (sim_type == "prompt")
-        agents_steering = [None, None]
-    results, agents, coop_rate = run_simulation(num_rounds, agents_strategies=agents_strategies,
-     agents_steering=agents_steering)
-    # results_df_asymmetry, a_gh, b_gh, alogs, blogs = run_asymmetry_simulation_tft(num_rounds)
-    print(f"Coop rate: {coop_rate}")
-    print(results)
-    timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
-    results.to_csv(f'./results/results_{sim_type}_{num_rounds}_{timestr}.csv')
-    for i, agent in enumerate(agents):
-        print(f"------------------Agent A_{i}------------------")
-        print(agents[i].game_history)
-        agents[i].inspect_model()
-        # with open(f"./results/{sim_type}_agent_{i}_game_history_{num_rounds}.csv", "w", newline="") as f:
-        #     writer = csv.writer(f)
-        #     writer.writerows(agents[i].game_history)
-        print("**********")
-        print(agents[i].log)
-        # with open(f"./results/{sim_type}_agent_{i}_log_{num_rounds}.txt", "w") as f:
-        #     f.write('\n\n'.join(agents[i].log))
+
+# Example Simulation
+num_rounds = 2  # Simulate 50 rounds as an example
+results_df_asymmetry = run_asymmetry_simulation(num_rounds)
+# results_df_asymmetry, a_gh, b_gh, alogs, blogs = run_asymmetry_simulation_tft(num_rounds)
+
+timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
+results_df_asymmetry.to_csv(f"data/game_results_{timestr}.csv", index=False)
