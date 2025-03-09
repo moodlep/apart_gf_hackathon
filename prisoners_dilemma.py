@@ -166,7 +166,7 @@ class Agent():
 
     def save(self, sim_type="", folder = "data/"):
         timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
-        with open(f"{folder}{self.name}_game_logs_{timestr}.log", 'w') as f:
+        with open(f"{folder}{self.name}_{sim_type}_game_logs_{timestr}.log", 'w') as f:
             f.write(f"Agent logs: {self.log} \n")
             f.write(f"Game history: {self.game_history} \n")
             # f.write(f"Agent inspect: {self.inspect_model()} \n")
