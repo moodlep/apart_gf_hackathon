@@ -133,7 +133,7 @@ class Agent():
             self.game_history[-1].append(opposition_action)
         self.log.append(f"Recorded score {score} for round {len(self.game_history)}")
 
-    def inspect_model(self):
+    def inspect_model(self, folder = "data/"):
         # Inspect the model variant to see what features are activated at the end of play
         messages = [{"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": self.user_prompt.format(perceived_history=self.game_history, strategy=self.strategy)+AGENT_PROMPT_2}]
@@ -155,14 +155,21 @@ class Agent():
                     search_features.append({"property": prop, "features": context.top(15)})
 
         self.log.append(f"Model variant inspected")
+
+        timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
+        with open(f"{folder}{self.name}_inspect_logs_{timestr}.log", 'w') as f:
+            f.write(f"Lookup: {lookup} \n")
+            f.write(f"Top Features: {top_features} \n")
+            f.write(f"Search Features: {search_features} \n")
+
         return {"lookup": lookup, "top_features": top_features, "search_features": search_features}
 
     def save(self, folder = "data/"):
         timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
-        with open(f"{folder}game_logs_{timestr}.log", 'w') as f:
+        with open(f"{folder}{self.name}_game_logs_{timestr}.log", 'w') as f:
             f.write(f"Agent logs: {self.log} \n")
             f.write(f"Game history: {self.game_history} \n")
-            f.write(f"Agent inspect: {self.inspect_model()} \n")
+            # f.write(f"Agent inspect: {self.inspect_model()} \n")
 
         # Save model variants to json file
         with open(f"{folder}variant{timestr}.json", 'w') as f:
@@ -267,7 +274,9 @@ def run_asymmetry_simulation(num_rounds):
         })
 
     a.save()
+    a.inspect_model()
     b.save()
+    b.inspect_model()
 
     return pd.DataFrame(history)
 
