@@ -1,8 +1,3 @@
-<style>
-.nobr {
-    white-space: nowrap;
-}
-</style>
 
 
 APART Research 
@@ -14,13 +9,11 @@ Extending an implementation of the Prisoner's Dilemma to a multi-agent setting, 
 We set a strategy and dynamically map the agent's model to follow the strategy. 
 
 Example turns: 
-<span class="nobr">
 ```
    Round       A Move   B Move  ...  B Cumulative                                           A Reason                                           B Reason
 0      1  Stay Silent  Confess  ...             3  Hoping for a mutually beneficial outcome of 1 ...  Fear of serving 10 years if the other confesse...
 1      2  Stay Silent  Confess  ...             6  Hoping for a mutually beneficial outcome of 1 ...  Fear of serving 10 years if the other confesse...
 ```
-</span>
 
 
 Acknowledgements: 
