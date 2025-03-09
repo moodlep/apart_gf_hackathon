@@ -133,7 +133,7 @@ class Agent():
             self.game_history[-1].extend(other_agents_actions)
         self.log.append(f"Recorded score {score} for round {len(self.game_history)} and other agents moves: {other_agents_actions}")
 
-    def inspect_model(self, folder = "data/"):
+    def inspect_model(self, sim_type, folder = "data/"):
         # Inspect the model variant to see what features are activated at the end of play
         messages = [{"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": self.user_prompt.format(perceived_history=self.game_history, strategy=self.strategy)+AGENT_PROMPT_2}]
@@ -274,8 +274,8 @@ def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type):
             if moves[agent_idx] == "C":
                 coop_rate += 1
         history.append(round_log)
-        for agent in agents:
-            agent.save(sim_type)
+    for agent in agents:
+        agent.save(sim_type)
 
     return pd.DataFrame(history), agents, coop_rate/(num_rounds*len(agents))
 
@@ -354,7 +354,7 @@ if __name__ == '__main__':
     for i, agent in enumerate(agents):
         print(f"------------------Agent A_{i}------------------")
         print(agents[i].game_history)
-        agents[i].inspect_model()
+        agents[i].inspect_model(sim_type=sim_type)
         # with open(f"./results/{sim_type}_agent_{i}_game_history_{num_rounds}.csv", "w", newline="") as f:
         #     writer = csv.writer(f)
         #     writer.writerows(agents[i].game_history)
