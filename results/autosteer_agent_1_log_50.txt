@@ -1,0 +1,111 @@
+Agent A_1 initialised
+
+Set strategy to AD
+
+Reset model variant
+
+Set model edits to FeatureEdits([
+   0: (Narrative moments where characters must choose sides or switch allegiances, 0.4664423076923077)
+   1: (Narratives and descriptions of betrayal and treachery, 0.42201923076923087)
+   2: (The assistant expressing measured disapproval or rejection while maintaining ethical boundaries, 0.26653846153846156)
+])
+
+Extracted move D with reason Fear of being betrayed and serving 10 years if I stay silent
+
+Extracted move D with reason Fear of being a double agent and serving 10 years if I stay silent
+
+Extracted move D with reason Fear of being a double agent and serving 10 years if I stay silent
+
+Extracted move D with reason Fear of being a double agent and serving 10 years if I stay silent
+
+Extracted move D with reason The opponent's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The opponent's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The opponent's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The opponent's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The opponent's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The opponent's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The opponent's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The opponent's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.
+
+Extracted move D with reason The other prisoner's past moves indicate they are a defector, so I'll confess to avoid serving 10 years.

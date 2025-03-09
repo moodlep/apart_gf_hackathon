@@ -1,0 +1,111 @@
+Agent A_0 initialised
+
+Set strategy to AC
+
+Reset model variant
+
+Set model edits to FeatureEdits([
+   0: (Collaborative brainstorming and ideation activities, 0.5065789473684211)
+   1: (Polite follow-ups and gentle reminders in professional communication, 0.3647368421052632)
+   2: (Taking on or assigning new work tasks and responsibilities, 0.28368421052631587)
+])
+
+Extracted move C with reason Brainstorming together, I hope we both land on the same page and serve just 1 year, no matter how small the chance
+
+Extracted move C with reason Building on the previous idea, I'll stay silent and hope the other does too, aiming for the 1-year outcome
+
+Extracted move C with reason Building on previous moves, I'll stay silent to aim for the 1-year outcome, hoping the other does the same
+
+Extracted move C with reason Building on previous moves, I'll stay silent to aim for the 1-year outcome, hoping the other does the same
+
+Extracted move C with reason Building on previous moves, I'll stay silent to aim for the 1-year outcome, hoping the other does the same
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent silent moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent stream of 'C' moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent stream of 'C' moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason The other prisoner has been consistently staying silent, aiming for the 1-year outcome, so I'll follow suit to increase the chances of both of us landing on that outcome
+
+Extracted move C with reason Building on the other's consistent stream of 'C' moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent stream of 'C' moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent stream of 'C' moves, I'll stay silent too, hoping we both land on the 1-year outcome
+
+Extracted move C with reason Building on the other's consistent stream of 'C' moves, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome
+
+Extracted move C with reason Building on the assumption that the other prisoner is following the same strategy, I'll stay silent to aim for the 1-year outcome

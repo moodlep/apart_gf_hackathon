@@ -1,0 +1,103 @@
+Agent A_1 initialised
+
+Set strategy to AD
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, and given the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence, regardless of the other prisoner's decision.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence, regardless of the other prisoner's decision.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason The opponent's history shows a consistent strategy of defecting, so I will also defect to minimize my potential sentence.
+
+Extracted move D with reason The other prisoner's history shows a consistent strategy of defecting, so I will also defect to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason My strategy is to always defect, so I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
+
+Extracted move D with reason Given my strategy is to always defect and the other prisoner's history of defecting, I will confess to minimize my potential sentence.
