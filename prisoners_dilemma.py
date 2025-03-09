@@ -164,7 +164,7 @@ class Agent():
 
         return {"lookup": lookup, "top_features": top_features, "search_features": search_features}
 
-    def save(self, folder = "data/"):
+    def save(self, sim_type="", folder = "data/"):
         timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
         with open(f"{folder}{self.name}_game_logs_{timestr}.log", 'w') as f:
             f.write(f"Agent logs: {self.log} \n")
@@ -228,7 +228,7 @@ def payoff(moves):
         return 0, 0  # Mutual Defection
 
 # Simulate the Game - AC and AD
-def run_simulation(num_rounds, agents_strategies, agents_steering):
+def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type):
     # Instantiate Agents
     agents = []
     for agent_strat, agent_steer in zip(agents_strategies, agents_steering):
@@ -274,7 +274,7 @@ def run_simulation(num_rounds, agents_strategies, agents_steering):
             if moves[agent_idx] == "C":
                 coop_rate += 1
         for agent in agents:
-            agent.save()
+            agent.save(sim_type)
         history.append(round_log)
 
     return pd.DataFrame(history), agents, coop_rate/(num_rounds*len(agents))
@@ -345,7 +345,7 @@ if __name__ == '__main__':
         assert (sim_type == "prompt")
         agents_steering = [None, None]
     results, agents, coop_rate = run_simulation(num_rounds, agents_strategies=agents_strategies,
-     agents_steering=agents_steering)
+     agents_steering=agents_steering, sim_type=sim_type)
     # results_df_asymmetry, a_gh, b_gh, alogs, blogs = run_asymmetry_simulation_tft(num_rounds)
     print(f"Coop rate: {coop_rate}")
     print(results)
