@@ -3,6 +3,8 @@ import json
 import goodfire
 import json
 import pandas as pd
+from datetime import datetime
+
 
 from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT, ANALYSE_SYSTEM_PROMPT, valid_actions
 
@@ -211,6 +213,8 @@ def run_asymmetry_simulation(num_rounds):
         a_pay, b_pay = payoff(a_move, b_move)
         a_score += a_pay
         b_score += b_pay
+        a.get_round_info(a_pay, b_move)
+        b.get_round_info(b_pay, a_move)  
 
         history.append({
             "Round": round_number,
@@ -284,3 +288,11 @@ print(a_gh)
 print("------------------Agent B------------------")
 print(b_gh)
 
+timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
+with open(f"data/game_logs_{timestr}.log", 'w') as f:
+    f.write(f"Agent A logs: {alogs} \n")
+    f.write(f"Agent B logs: {blogs} \n") 
+    f.write(f"Game history: {a_gh} \n")
+    f.write(f"Game history: {b_gh} \n")      
+
+results_df_asymmetry.to_csv(f"data/game_results_{timestr}.csv", index=False)
