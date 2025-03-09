@@ -4,7 +4,7 @@ import goodfire
 import json
 import pandas as pd
 
-from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT
+from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT, ANALYSE_SYSTEM_PROMPT, valid_actions
 
 class Agent():
     def __init__(self, name, strategy="RND"):
@@ -76,8 +76,9 @@ class Agent():
         # Analyse the game play so far based on game history and selected strategy.
         # Modify the model variant to be more aligned with the strategy and game history.
         # Use another model (GPT4o?) for this analysis ??
-        response = call_chat_completions(SYSTEM_PROMPT, AGENT_PROMPT.format)
-        messages=[{"role": "user", "content": ANALYSE_PROMPT.format(history=game_history, strategy=self.strategy)}]
+        response = call_chat_completions(ANALYSE_SYSTEM_PROMPT, AGENT_PROMPT.format)
+        messages=[{"role": "system", "content": ANALYSE_SYSTEM_PROMPT},
+                  {"role": "user", "content": ANALYSE_PROMPT.format(history=game_history, strategy=self.strategy)}]
         context = self.client.features.inspect(messages, model=self.variant)
 
         # How to map from context to datasets and set model edits? TBC
@@ -117,13 +118,53 @@ class Agent():
             content = response.choices[0].message["content"]
 
             move, reason = self.extract_move(content)
-            self.game_history.append((move, reason, self.strategy))
+            self.game_history.append([move, reason, self.strategy])
 
         except Exception as e:
             self.log.append(f"Error in generating game response; Defaulting to Cooperate: {e}")
             return "C", "Error in generating game response."
         return move, reason
     
+    def get_round_info(self, score, opposition_action="NA"):
+        self.game_history[-1].append(score)
+        if opposition_action != "NA":
+            self.game_history[-1].append(opposition_action)
+        self.log.append(f"Recorded score {score} for round {len(self.game_history)}")
+
+    def get_manual_features(self):
+        # Get features for manual model steering: (used for TFT strategy)
+        self.coop_features, self.def_features = get_prisoners_dilemma_features()
+
+    def tft(self):
+        # Implement "TFT": "Tit for Tat: Start with Cooperation in the first round, then mimic the opponent's previous action throughout the game",
+        # If first turn, set coop
+        # Else review game history, set opponent's last action
+        # Use manual model steering if we have deception and coop features, else autosteer
+
+        # Set defaults - always return a move and a reason
+        move = "C"
+        reason = "TFT strategy"
+
+        if len(self.game_history) >0:
+            move = self.game_history[-1][-1]
+            if move in valid_actions.keys():  # check valid actions only
+                self.set_model_edits_autosteer(valid_actions[move])
+                self.log.append(f"tft: autosteer based on action {move}") 
+                self.game_history.append([move, reason+f"prev opponent action {move}", self.strategy])
+                return move, reason+f"prev opponent action {move}"
+            else:
+                self.set_model_edits_autosteer(valid_actions["C"])
+                self.log.append(f"tft: invalid action returned - default action is cooperate")
+                self.game_history.append([move, reason+"prev opponent action unavailable", self.strategy])
+                return move, reason+"prev opponent action unavailable"
+        else:
+            # First round - cooperate
+
+            self.set_model_edits_autosteer(valid_actions["C"])
+            self.log.append(f"tft: Round 1 - cooperate")
+            self.game_history.append([move, reason+"Round 1", self.strategy])
+            return move, reason+"Round 1"
+           
 #########################Running the simulation ############################
 
 # Payoff Function for Prisoner’s Dilemma
@@ -137,7 +178,7 @@ def payoff(a_move, b_move):
     else:
         return 0, 0  # Mutual Defection
 
-# Simulate the Game
+# Simulate the Game - AC and AD
 def run_asymmetry_simulation(num_rounds):
     
     # Get features for cooperative and deceptive behaviour
@@ -157,7 +198,7 @@ def run_asymmetry_simulation(num_rounds):
         b.set_model_edits(def_features)
     else:
         b.set_model_edits_autosteer("defection")
-
+    
     a_score = 0
     b_score = 0
     history = []
@@ -185,7 +226,61 @@ def run_asymmetry_simulation(num_rounds):
 
     return pd.DataFrame(history), a.game_history, b.game_history, a.log, b.log
 
+def run_asymmetry_simulation_tft(num_rounds):
+    
+    # Get features for cooperative and deceptive behaviour
+    coop_features, def_features = get_prisoners_dilemma_features()
+
+    # Instantiate Agents A and B
+    # Agent A is cooperative
+    # Agent B is following strategy TFT
+    a = Agent("A", strategy="AC")
+    if coop_features:
+        a.set_model_edits(coop_features)
+    else:
+        a.set_model_edits_autosteer("cooperation")
+
+    b = Agent("B", strategy="TFT")
+    
+    a_score = 0
+    b_score = 0
+    history = []
+
+    for round_number in range(1, num_rounds+1):
+
+        a_move, a_reason = a.generate_game_response()
+        # b_move, b_reason = b.generate_game_response()
+        b_move, b_reason = b.tft()
+
+        a_pay, b_pay = payoff(a_move, b_move)
+        a_score += a_pay
+        b_score += b_pay
+        a.get_round_info(a_pay, b_move)
+        b.get_round_info(b_pay, a_move)  
+
+        history.append({
+            "Round": round_number,
+            "A Move": "Stay Silent" if a_move == "C" else "Confess",
+            "B Move": "Stay Silent" if b_move == "C" else "Confess",
+            "A Payoff": a_pay,
+            "B Payoff": b_pay,
+            "A Cumulative": a_score,
+            "B Cumulative": b_score,
+            "A Reason": a_reason,
+            "B Reason": b_reason
+        })
+
+    return pd.DataFrame(history), a.game_history, b.game_history, a.log, b.log
+
+
 # Example Simulation
-num_rounds = 5  # Simulate 50 rounds as an example
+num_rounds = 2  # Simulate 50 rounds as an example
 results_df_asymmetry, a_gh, b_gh, alogs, blogs = run_asymmetry_simulation(num_rounds)
+# results_df_asymmetry, a_gh, b_gh, alogs, blogs = run_asymmetry_simulation_tft(num_rounds)
+
 print(results_df_asymmetry)
+print("------------------Agent A------------------")
+print(a_gh)
+print("------------------Agent B------------------")
+print(b_gh)
+

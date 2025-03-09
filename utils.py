@@ -20,6 +20,8 @@ strategies = {
     "WSLS": "Win-Stay Lose-Shift - repeat the previous action if it resulted in the highest payoffs, otherwise change action"
 }
 
+valid_actions = {"C": "cooperate", "D": "defect"}
+
 SYSTEM_PROMPT = f"""
 You are a real human being with fears, doubts and hopes.
 You and another person were arrested for a serious crime. Now, you are each isolated in separate interrogation rooms.
@@ -59,10 +61,9 @@ Respond ONLY in this format:
 (C means you **stay silent**; D means you **confess**.)
 """
 
-ANALYSE_PROMPT = f"""
-Analyse the game of prisoners dilemma <history> and the strategy adopted <strategy>.
-Suggest how the user should behave next - should they be more cooperative or deceptive?
-"""
+ANALYSE_SYSTEM_PROMPT = "You are a real human being with fears, doubts and hopes. You and another person were arrested for a serious crime. Now, you are each isolated in separate interrogation rooms. The prosecutor's deal has rules: - If you both remain silent (C), you each serve 1 year. - If you remain silent (C) and the other confesses (D), you serve 10 years, they go free. - If you confess (D) and the other remains silent (C), you go free, they serve 10 years. - If both confess (D,D), you both serve 5 years. There are several strategies you can adopt: '{strategies}'."
+
+ANALYSE_PROMPT = "Analyse the game of prisoners dilemma <history> and the strategy adopted <strategy>. Based on our scores, should we change strategy? If so, what strategy should we adopt? Return only the strategy code "
 
 # If we need an openai cient, let's create it here
 # Define function to call GPT-4o
@@ -114,7 +115,7 @@ def get_prisoners_dilemma_features():
     
     with open('contrastive_data.json', 'r', encoding ='utf8') as json_file:
         contrastive_data = json.load(json_file)
-    print(contrastive_data['C'][0], contrastive_data['D'][0])
+    # print(contrastive_data['C'][0], contrastive_data['D'][0])
 
     coop_features = get_edits_contrastive(client, variant, dataset1=contrastive_data['C'][:64], dataset2=contrastive_data['D'][:64], query="cooperation")
     # coop_variant = variant
