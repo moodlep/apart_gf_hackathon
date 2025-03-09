@@ -4,9 +4,11 @@ APART Research
 [Women in AI Safety Hackathon with Goodfire](https://www.apartresearch.com/event/women-in-ai-safety-hackathon)
 
 
-Extending an implementation of the Prisoner's Dilemma to a multi-agent setting, using Goodfire's Ember to control the agents. 
+Extending an implementation of the Prisoner's Dilemma to a multi-LLM agent setting, using Goodfire's Ember to steer the agents. 
 
-We set a strategy and dynamically map the agent's model to follow the strategy. 
+Run ```prisoners_dilemma_gf.py``` for two-agent scenarios and ```prisoners_dilemma.py``` for multiple agents and comparative steering mechanisms including Ember's AutoSteer vs manually feature steering vs prompt steering. 
+
+The ```results``` folder contains game logs and history including an analysis using the ```inspect()``` from Ember. 
 
 Example turns: 
 ```
