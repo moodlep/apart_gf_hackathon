@@ -188,7 +188,7 @@ def run_simulation(num_rounds, agents_strategies, agents_steering):
     agents = []
     for agent_strat, agent_steer in zip(agents_strategies, agents_steering):
         agent_name = 'A_'+ str(len(agents))
-        agents.append(Agent(agent_name, strategy="AC"))
+        agents.append(Agent(agent_name, strategy=agent_strat))
         agent = agents[-1]
         if isinstance(agent_steer, str):
             agent.set_model_edits_autosteer(agent_steer)
