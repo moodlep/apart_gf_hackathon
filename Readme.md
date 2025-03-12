@@ -8,6 +8,12 @@ Extending an implementation of the Prisoner's Dilemma to a multi-LLM agent setti
 
 Run ```prisoners_dilemma_gf.py``` for two-agent scenarios and ```prisoners_dilemma.py``` for multiple agents and comparative steering mechanisms including Ember's AutoSteer vs manually feature steering vs prompt steering. 
 
+Run with ```python prisoners_dilemma.py --num_rounds=40 --sim_type="autosteer"``` to simulate the autosteering scenario. 
+
+Run with ```python prisoners_dilemma.py --num_rounds=40 --sim_type="features"``` to simulate with manual feature steering using Ember. 
+
+RUn with ```python prisoners_dilemma.py --num_rounds=40 --sim_type="prompt"``` to simulate the prompting scenario. 
+
 The ```results``` folder contains game logs and history including an analysis using the ```inspect()``` from Ember. 
 
 Example turns: 
