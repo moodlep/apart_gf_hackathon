@@ -23,6 +23,7 @@ Example turns:
 1      2  Stay Silent  Confess  ...             6  Hoping for a mutually beneficial outcome of 1 ...  Fear of serving 10 years if the other confesse...
 ```
 
+Our project write-up is [here](https://www.apartresearch.com/project/feature-based-analysis-of-cooperation-relevant-behaviour-in-prisoner-s-dilemma-64d65). 
 
 Acknowledgements: 
  
