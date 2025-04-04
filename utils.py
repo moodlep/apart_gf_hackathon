@@ -4,6 +4,8 @@ import json
 import goodfire
 import os
 import dotenv
+import datetime
+import pickle
 
 # Configure your OpenAI API key
 dotenv.load_dotenv()
@@ -126,3 +128,36 @@ def get_prisoners_dilemma_features():
     # def_variant.set(def_features, .2)
     
     return coop_features, def_features
+
+def parse_lookup_features(features):
+    """ Parse this to extract the feature id and name
+    Lookup: [(41637, Feature("Start of a new conversation segment")), (22058, Feature("Start of a new conversation segment")), (13884, Feature("Start of a new conversation segment in chat format")), (38729, Feature("Start of a new conversation or major topic reset")), (24991, Feature("Start of a new conversation segment")), (1605, Feature("Start of a new conversation segment or reset")), (53950, Feature("Start of a new conversation segment")), (39512, Feature("Start of a new conversation segment")), (59660, Feature("Beginning of new conversation segment marker")), (8875, Feature("Start of a new conversation segment")), (59936, Feature("Beginning of a new conversation or topic segment")), (12086, Feature("Conversation reset points, especially after problematic exchanges")), (37271, Feature("Start of new conversation segment or topic switch")), (21632, Feature("Reset conversation state and establish fresh context boundaries")), (54874, Feature("Start of a new conversation segment")), (32873, Feature("Start of a new conversation with system header format")), (39438, Feature("Start of a new conversation segment")), (18957, Feature("Start of a new conversation thread")), (51081, Feature("Start of a new conversation segment")), (39019, Feature("Beginning of new conversation segment marker"))] 
+    """
+    parsed_features = []
+    for feature in features:
+        feature_id = feature[0]
+        feature_name = feature[1].name
+        parsed_features.append((feature_id, feature_name))
+    return parsed_features
+    
+def save_parse_features(run, folder, log_str, feature_activations, property=None):
+    """FeatureActivations(
+    0: (Feature("Syntactical delimiters and special characters in structured text"), 309)
+    1: (Feature("Mechanical repetition of tokens in system outputs"), 254)
+    2: (Feature("Game theory concepts involving cooperation versus competition"), 247)
+    Where Goodfire Feature has uuid: UUID, label: str, index_in_sae: int
+    """
+    timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
+        
+    # Save feature_activations as pickle
+    with open(f"{folder}_run{run}_agent_{log_str}_{timestr}_features.pickle", 'wb') as f:
+        pickle.dump(feature_activations, f)
+
+    with open(f"{folder}_run{run}_agent_{log_str}_{timestr}_features.csv", 'w') as f:
+
+        for feature_activation in feature_activations:
+            if property is not None:
+                f.write(f"{feature_activation.feature}, {feature_activation.activation}, {property}\n")
+            else:
+                f.write(f"{feature_activation.feature}, {feature_activation.activation}\n")
+    

@@ -6,10 +6,10 @@ import pandas as pd
 from datetime import datetime
 import argparse
 
-from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT, ANALYSE_SYSTEM_PROMPT, valid_actions
+from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT, ANALYSE_SYSTEM_PROMPT, valid_actions, save_parse_features
 
 class Agent():
-    def __init__(self, name, strategy="RND"):
+    def __init__(self, name, strategy="RND", log_dir="./results/"):
         self.name = name
         self.messages = []
         self.log = []
@@ -22,6 +22,7 @@ class Agent():
         self.variant.reset()
         self.log.append(f"Agent {name} initialised")
         self.set_strategy(strategy)  # sets strategy in the user prompt
+        self.log_dir = log_dir
 
 
     def set_strategy(self, strategy):
@@ -133,15 +134,16 @@ class Agent():
             self.game_history[-1].extend(other_agents_actions)
         self.log.append(f"Recorded score {score} for round {len(self.game_history)} and other agents moves: {other_agents_actions}")
 
-    def inspect_model(self, sim_type, folder = "data/"):
+    def inspect_model(self, sim_type, folder = "data/", num_features=20):
         # Inspect the model variant to see what features are activated at the end of play
         messages = [{"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": self.user_prompt.format(perceived_history=self.game_history, strategy=self.strategy)+AGENT_PROMPT_2}]
         
         context = self.client.features.inspect(messages=messages, model=self.variant)
-        lookup = list(context.lookup().items())[:20]
-        top_features = context.top(20)
-
+        lookup = list(context.lookup().items())[:num_features]
+        top_features = context.top(num_features)
+        save_parse_features(None, self.log_dir, self.name, top_features)
+        
         # open properties file and for each property, get corresponding features, test model for each property
         with open('properties.txt', 'r') as f:
             properties = f.readlines()
@@ -149,30 +151,32 @@ class Agent():
             for prop in properties:
                 if prop.strip():
                     prop = prop.split(":")[0]  # get short form of property. eg. "cooperation"
-                    property_features = self.client.features.search(prop, model=self.variant, top_k=15) # get features for property
+                    property_features = self.client.features.search(prop, model=self.variant, top_k=num_features) # get features for property
                     context = self.client.features.inspect(messages=messages, model=self.variant, features=property_features) # test model with property features
                     # retrieve the top k activating property features in the context:
-                    search_features.append({"property": prop, "features": context.top(15)})
+                    search_features.append({"property": prop, "features": context.top(num_features)})
 
         self.log.append(f"Model variant inspected")
 
+        save_parse_features(None, self.log_dir, self.name, search_features[0]["features"], search_features[0]["property"])
+
         timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
-        with open(f"{folder}{self.name}_inspect_logs_{sim_type}_{timestr}.log", 'w') as f:
+        with open(f"{self.log_dir}{self.name}_inspect_logs_{sim_type}_{timestr}.log", 'w') as f:
             f.write(f"Lookup: {lookup} \n")
             f.write(f"Top Features: {top_features} \n")
             f.write(f"Search Features: {search_features} \n")
 
         return {"lookup": lookup, "top_features": top_features, "search_features": search_features}
 
-    def save(self, sim_type="", folder = "data/"):
+    def save(self, sim_type=""):
         timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
-        with open(f"{folder}{self.name}_{sim_type}_game_logs_{timestr}.log", 'w') as f:
+        with open(f"{self.log_dir}{self.name}_{sim_type}_game_logs_{timestr}.log", 'w') as f:
             f.write(f"Agent logs: {self.log} \n")
             f.write(f"Game history: {self.game_history} \n")
             # f.write(f"Agent inspect: {self.inspect_model()} \n")
 
         # Save model variants to json file
-        with open(f"{folder}variant{timestr}.json", 'w') as f:
+        with open(f"{self.log_dir}variant{timestr}.json", 'w') as f:
             f.write(json.dumps(self.variant.json()))
             
         return timestr
@@ -190,7 +194,7 @@ class Agent():
 
         # Set defaults - always return a move and a reason
         move = "C"
-        reason = "TFT strategy"
+        reason = "TFT default"
 
         if len(self.game_history) >0:
             move = self.game_history[-1][-1]
@@ -228,12 +232,12 @@ def payoff(moves):
         return 0, 0  # Mutual Defection
 
 # Simulate the Game - AC and AD
-def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type):
+def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type, folder):
     # Instantiate Agents
     agents = []
     for agent_strat, agent_steer in zip(agents_strategies, agents_steering):
         agent_name = 'A_'+ str(len(agents))
-        agents.append(Agent(agent_name, strategy=agent_strat))
+        agents.append(Agent(agent_name, strategy=agent_strat, log_dir=folder))
         agent = agents[-1]
         if isinstance(agent_steer, str):
             agent.set_model_edits_autosteer(agent_steer)
@@ -331,10 +335,13 @@ if __name__ == '__main__':
                         help="Number of game iterations.")
     parser.add_argument('--sim_type', default="features", type=str,
                         help="Simulation type.")
+    parser.add_argument('--model', default="openai/gtp40-mini", type=str,
+                        help="Agent's model")
     args = parser.parse_args()
     num_rounds = args.num_rounds
     sim_type = args.sim_type
     agents_strategies = ["AC", "AD"]
+    
     if sim_type == "features":
         # Get features for cooperative and deceptive behaviour
         coop_features, def_features = get_prisoners_dilemma_features()
@@ -344,13 +351,18 @@ if __name__ == '__main__':
     else:
         assert (sim_type == "prompt")
         agents_steering = [None, None]
+
+    timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
+    if not os.path.exists(f"./results/{timestr}"):
+        os.makedirs(f"./results/{timestr}")
+    folder=f"./results/{timestr}/"
+
     results, agents, coop_rate = run_simulation(num_rounds, agents_strategies=agents_strategies,
-     agents_steering=agents_steering, sim_type=sim_type)
+     agents_steering=agents_steering, sim_type=sim_type, folder=folder)
     # results_df_asymmetry, a_gh, b_gh, alogs, blogs = run_asymmetry_simulation_tft(num_rounds)
     print(f"Coop rate: {coop_rate}")
     print(results)
-    timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
-    results.to_csv(f'./results/results_{sim_type}_{num_rounds}_{timestr}.csv')
+    results.to_csv(f'{folder}results_{sim_type}_{num_rounds}_{timestr}.csv')
     for i, agent in enumerate(agents):
         print(f"------------------Agent A_{i}------------------")
         print(agents[i].game_history)
