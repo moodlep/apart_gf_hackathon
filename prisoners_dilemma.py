@@ -5,11 +5,12 @@ import json
 import pandas as pd
 from datetime import datetime
 import argparse
+import pickle
 
 from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT, ANALYSE_SYSTEM_PROMPT, valid_actions, save_parse_features
 
 class Agent():
-    def __init__(self, name, strategy="RND", log_dir="./results/"):
+    def __init__(self, name, strategy="RND", log_dir="./results/", exp_id=None):
         self.name = name
         self.messages = []
         self.log = []
@@ -18,11 +19,18 @@ class Agent():
         self.user_prompt = AGENT_PROMPT
         # Instantiate a model variant
         self.client = goodfire.Client(GOODFIRE_API_KEY)
-        self.variant = goodfire.Variant("meta-llama/Llama-3.3-70B-Instruct")
+        self.variant = goodfire.Variant("meta-llama/Meta-Llama-3.1-8B-Instruct")
+        # self.variant = goodfire.Variant("meta-llama/Llama-3.3-70B-Instruct")
         self.variant.reset()
         self.log.append(f"Agent {name} initialised")
         self.set_strategy(strategy)  # sets strategy in the user prompt
         self.log_dir = log_dir
+        self.feature_store = {
+        "lookup_features": {},
+        "top_features": {},
+        "search_features": {},
+        }
+        self.experiment_id = exp_id
 
 
     def set_strategy(self, strategy):
@@ -125,6 +133,7 @@ class Agent():
 
         except Exception as e:
             self.log.append(f"Error in generating game response; Defaulting to Cooperate: {e}")
+            self.game_history.append(["C", "Error in generating game response; Defaulting to Cooperate" , self.strategy])
             return "C", "Error in generating game response."
         return move, reason
     
@@ -134,15 +143,14 @@ class Agent():
             self.game_history[-1].extend(other_agents_actions)
         self.log.append(f"Recorded score {score} for round {len(self.game_history)} and other agents moves: {other_agents_actions}")
 
-    def inspect_model(self, sim_type, folder = "data/", num_features=20):
+    def inspect_model(self, sim_type, num_features=20, run=None):
         # Inspect the model variant to see what features are activated at the end of play
         messages = [{"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": self.user_prompt.format(perceived_history=self.game_history, strategy=self.strategy)+AGENT_PROMPT_2}]
         
         context = self.client.features.inspect(messages=messages, model=self.variant)
-        lookup = list(context.lookup().items())[:num_features]
-        top_features = context.top(num_features)
-        save_parse_features(None, self.log_dir, self.name, top_features)
+        self.feature_store["lookup_features"][run] = list(context.lookup().items())[:num_features]
+        self.feature_store["top_features"][run] = context.top(num_features)
         
         # open properties file and for each property, get corresponding features, test model for each property
         with open('properties.txt', 'r') as f:
@@ -156,32 +164,34 @@ class Agent():
                     # retrieve the top k activating property features in the context:
                     search_features.append({"property": prop, "features": context.top(num_features)})
 
-        self.log.append(f"Model variant inspected")
+        self.feature_store["search_features"][run] = search_features
+        self.log.append(f"Run data for model variant stored in feature_store")
 
-        save_parse_features(None, self.log_dir, self.name, search_features[0]["features"], search_features[0]["property"])
-
-        timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
-        with open(f"{self.log_dir}{self.name}_inspect_logs_{sim_type}_{timestr}.log", 'w') as f:
-            f.write(f"Lookup: {lookup} \n")
-            f.write(f"Top Features: {top_features} \n")
-            f.write(f"Search Features: {search_features} \n")
-
-        return {"lookup": lookup, "top_features": top_features, "search_features": search_features}
 
     def save(self, sim_type=""):
         timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
         with open(f"{self.log_dir}{self.name}_{sim_type}_game_logs_{timestr}.log", 'w') as f:
             f.write(f"Agent logs: {self.log} \n")
             f.write(f"Game history: {self.game_history} \n")
-            # f.write(f"Agent inspect: {self.inspect_model()} \n")
 
         # Save model variants to json file
         with open(f"{self.log_dir}variant{timestr}.json", 'w') as f:
             f.write(json.dumps(self.variant.json()))
-            
         return timestr
 
+    def save_feature_stores(self, experiment_id=None):           
+        # Save feature store to pickle
+        # Search features: run, property, features, activation
+        # just save feature store to pickle file
 
+        # Save the feature store to a file
+        with open(f"{self.log_dir}{self.name}_wholefeature_store_{experiment_id}.pkl", 'wb') as f:
+            pickle.dump(self.feature_store, f)
+
+        # Special extract of search features
+        save_parse_features(experiment_id, self.log_dir, self.name, self.feature_store["search_features"])
+
+            
     def get_manual_features(self):
         # Get features for manual model steering: (used for TFT strategy)
         self.coop_features, self.def_features = get_prisoners_dilemma_features()
@@ -232,12 +242,12 @@ def payoff(moves):
         return 0, 0  # Mutual Defection
 
 # Simulate the Game - AC and AD
-def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type, folder):
+def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None):
     # Instantiate Agents
     agents = []
     for agent_strat, agent_steer in zip(agents_strategies, agents_steering):
         agent_name = 'A_'+ str(len(agents))
-        agents.append(Agent(agent_name, strategy=agent_strat, log_dir=folder))
+        agents.append(Agent(agent_name, strategy=agent_strat, log_dir=folder, exp_id = experiment_id))
         agent = agents[-1]
         if isinstance(agent_steer, str):
             agent.set_model_edits_autosteer(agent_steer)
@@ -278,8 +288,13 @@ def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type, fol
             if moves[agent_idx] == "C":
                 coop_rate += 1
         history.append(round_log)
+        for agent in agents: # collect SAE features to store. 
+            agent.inspect_model(sim_type=sim_type, num_features=20, run=round_number)
+    
     for agent in agents:
         agent.save(sim_type)
+
+        # experiment_id, folder, log_str, feature_store
 
     return pd.DataFrame(history), agents, coop_rate/(num_rounds*len(agents))
 
@@ -331,9 +346,9 @@ def run_asymmetry_simulation_tft(num_rounds):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Prisoner's Dilemma simulation.")
-    parser.add_argument('--num_rounds', default=5, type=int,
+    parser.add_argument('--num_rounds', default=1, type=int,
                         help="Number of game iterations.")
-    parser.add_argument('--sim_type', default="features", type=str,
+    parser.add_argument('--sim_type', default="prompt", type=str,
                         help="Simulation type.")
     parser.add_argument('--model', default="openai/gtp40-mini", type=str,
                         help="Agent's model")
@@ -357,8 +372,10 @@ if __name__ == '__main__':
         os.makedirs(f"./results/{timestr}")
     folder=f"./results/{timestr}/"
 
+    experiment_str  = f"{timestr}_runs_{num_rounds}_strat_{agents_strategies[0]}_{agents_strategies[1]}_sim_type_{sim_type}"
+
     results, agents, coop_rate = run_simulation(num_rounds, agents_strategies=agents_strategies,
-     agents_steering=agents_steering, sim_type=sim_type, folder=folder)
+     agents_steering=agents_steering, sim_type=sim_type, folder=folder, experiment_id=experiment_str)
     # results_df_asymmetry, a_gh, b_gh, alogs, blogs = run_asymmetry_simulation_tft(num_rounds)
     print(f"Coop rate: {coop_rate}")
     print(results)
@@ -366,7 +383,7 @@ if __name__ == '__main__':
     for i, agent in enumerate(agents):
         print(f"------------------Agent A_{i}------------------")
         print(agents[i].game_history)
-        agents[i].inspect_model(sim_type=sim_type)
+        agents[i].save_feature_stores(experiment_str)
         # with open(f"./results/{sim_type}_agent_{i}_game_history_{num_rounds}.csv", "w", newline="") as f:
         #     writer = csv.writer(f)
         #     writer.writerows(agents[i].game_history)
