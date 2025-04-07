@@ -207,19 +207,19 @@ class Agent():
         if len(self.game_history) >0:
             move = self.game_history[-1][-1]
             if move in valid_actions.keys():  # check valid actions only
-                self.set_model_edits_autosteer(valid_actions[move])
+                # self.set_model_edits_autosteer(valid_actions[move])
                 self.log.append(f"tft: autosteer based on action {move}") 
                 self.game_history.append([move, reason+f"prev opponent action {move}", self.strategy])
                 return move, reason+f"prev opponent action {move}"
             else:
-                self.set_model_edits_autosteer(valid_actions["C"])
+                # self.set_model_edits_autosteer(valid_actions["C"])
                 self.log.append(f"tft: invalid action returned - default action is cooperate")
                 self.game_history.append([move, reason+"prev opponent action unavailable", self.strategy])
                 return move, reason+"prev opponent action unavailable"
         else:
             # First round - cooperate
 
-            self.set_model_edits_autosteer(valid_actions["C"])
+            # self.set_model_edits_autosteer(valid_actions["C"])
             self.log.append(f"tft: Round 1 - cooperate")
             self.game_history.append([move, reason+"Round 1", self.strategy])
             return move, reason+"Round 1"
@@ -374,6 +374,66 @@ def run_asymmetry_simulation_tft(num_rounds):
         })
 
     return pd.DataFrame(history), a.game_history, b.game_history, a.log, b.log
+
+# Simulate the Game - TFT
+def run_simulation_tft(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None):
+    # Instantiate Agents
+    agents = []
+    for agent_strat, agent_steer in zip(agents_strategies, agents_steering):
+        agent_name = 'A_'+ str(len(agents))
+        agents.append(Agent(agent_name, strategy=agent_strat, log_dir=folder, exp_id = experiment_id))
+        agent = agents[-1]
+        if isinstance(agent_steer, str):
+            agent.set_model_edits_autosteer(agent_steer)
+        elif agent_steer is None:
+            if agent_strat == "AC":
+                agent.user_prompt = f"You always cooperate with your fellows."+agent.user_prompt
+            elif agent_strat == "TFT":
+                agent.user_prompt = f"You play TFT: Start with Cooperation in the first round, then mimic the opponent's previous action throughout the game."+agent.user_prompt
+            else:
+                assert (agent_strat == "AD")
+                agent.user_prompt = f"You always defect."+agent.user_prompt
+        else:
+            agent.set_model_edits(agent_steer)
+
+
+    agent_scores = [0 for _ in agents]
+    history = []
+    coop_rate = 0
+
+    for round_number in range(1, num_rounds+1):
+        moves, reasons = [], []
+        for agent in agents:
+            agent_move, agent_reason = agent.tft()
+            moves.append(agent_move)
+            reasons.append(agent_reason)
+
+        agent_payoffs = payoff(moves)
+        round_log = {"Round": round_number}
+        for agent_idx, agent_payoff in enumerate(agent_payoffs):
+            agent_scores[agent_idx] += agent_payoff
+            other_agents_actions = []
+            for i, other_agen in enumerate(agents):
+                if i != agent_idx:
+                    other_agents_actions.append(moves[i])
+            agents[agent_idx].get_round_info(agent_payoff, other_agents_actions)
+            round_log[f"A_{agent_idx} Move"] = "Stay Silent" if moves[agent_idx] == "C" else "Confess"
+            round_log[f"A_{agent_idx} Payoff"] = agent_payoff
+            round_log[f"A_{agent_idx} Cumulative"] = agent_scores[agent_idx]
+            round_log[f"A_{agent_idx} Reason"] = reasons[agent_idx]
+            if moves[agent_idx] == "C":
+                coop_rate += 1
+        history.append(round_log)
+        for agent in agents: # collect SAE features to store. 
+            agent.inspect_model(sim_type=sim_type, num_features=20, round_number=round_number)
+    
+    for agent in agents:
+        agent.save(sim_type)
+
+        # experiment_id, folder, log_str, feature_store
+
+    return pd.DataFrame(history), agents, coop_rate/(num_rounds*len(agents))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Prisoner's Dilemma simulation.")
