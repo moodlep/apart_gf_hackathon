@@ -20,8 +20,8 @@ class Agent():
         self.user_prompt = AGENT_PROMPT
         # Instantiate a model variant
         self.client = goodfire.Client(GOODFIRE_API_KEY)
-        self.variant = goodfire.Variant("meta-llama/Meta-Llama-3.1-8B-Instruct")
-        # self.variant = goodfire.Variant("meta-llama/Llama-3.3-70B-Instruct")
+        #self.variant = goodfire.Variant("meta-llama/Meta-Llama-3.1-8B-Instruct")
+        self.variant = goodfire.Variant("meta-llama/Llama-3.3-70B-Instruct")
         self.variant.reset()
         self.log.append(f"Agent {name} initialised")
         self.set_strategy(strategy)  # sets strategy in the user prompt
