@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import datetime
 import argparse
 import pickle
+from collections import defaultdict
 
 from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT, ANALYSE_SYSTEM_PROMPT, valid_actions, save_parse_features, parse_features
 
@@ -143,14 +144,14 @@ class Agent():
             self.game_history[-1].extend(other_agents_actions)
         self.log.append(f"Recorded score {score} for round {len(self.game_history)} and other agents moves: {other_agents_actions}")
 
-    def inspect_model(self, sim_type, num_features=20, round=None):
+    def inspect_model(self, sim_type, num_features=20, round_number=None):
         # Inspect the model variant to see what features are activated at the end of play
         messages = [{"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": self.user_prompt.format(perceived_history=self.game_history, strategy=self.strategy)+AGENT_PROMPT_2}]
         
         context = self.client.features.inspect(messages=messages, model=self.variant, aggregate_by="mean")
-        self.feature_store["lookup_features"][round] = list(context.lookup().items())[:num_features]
-        self.feature_store["top_features"][round] = context.top(num_features)
+        self.feature_store["lookup_features"][round_number] = list(context.lookup().items())[:num_features]
+        self.feature_store["top_features"][round_number] = context.top(num_features)
         
         # open properties file and for each property, get corresponding features, test model for each property
         with open('properties.txt', 'r') as f:
@@ -164,7 +165,7 @@ class Agent():
                     # retrieve the top k activating property features in the context:
                     search_features.append({"property": prop, "features": context.top(num_features)})
 
-        self.feature_store["search_features"][round] = search_features
+        self.feature_store["search_features"][round_number] = search_features
         self.log.append(f"round data for model variant stored in feature_store")
 
 
@@ -242,8 +243,8 @@ def payoff(moves):
 def run_simulations(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None, num_runs=10):
     history_columns = ["Round", "A Move", "B Move", "A Payoff", "B Payoff",
            "A Cumulative", "B Cumulative", "A Reason", "B Reason", "run_id"]
-    agents_search_features_store = {}
-    agents_features_store = {}
+    agents_search_features_store = defaultdict(list)
+    agents_features_store = defaultdict(list)
     # Create an empty DataFrame with those columns
     runs_histories = pd.DataFrame(columns=history_columns)
     for run_idx in range(num_runs):
@@ -269,7 +270,7 @@ def run_simulations(num_rounds, agents_strategies, agents_steering, sim_type, fo
     for agent_name in agents_features_store:
         with open(f"{folder}{agent_name}_wholefeature_store_{experiment_id}.pkl", 'wb') as f:
             pickle.dump(agents_features_store[agent_name], f)
-        save_parse_features(experiment_id=experiment_id, folder=folder, log_str=agent_name, structured_features_data=agents_search_features_store)
+        save_parse_features(experiment_id=experiment_id, folder=folder, log_str=agent_name, structured_features_data=agents_search_features_store[agent_name])
 
 # Simulate the Game - AC and AD
 def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None):
@@ -319,7 +320,7 @@ def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type, fol
                 coop_rate += 1
         history.append(round_log)
         for agent in agents: # collect SAE features to store. 
-            agent.inspect_model(sim_type=sim_type, num_features=20, round=round_number)
+            agent.inspect_model(sim_type=sim_type, num_features=20, round_number=round_number)
     
     for agent in agents:
         agent.save(sim_type)
