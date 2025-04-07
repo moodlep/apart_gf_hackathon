@@ -148,7 +148,7 @@ class Agent():
         messages = [{"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": self.user_prompt.format(perceived_history=self.game_history, strategy=self.strategy)+AGENT_PROMPT_2}]
         
-        context = self.client.features.inspect(messages=messages, model=self.variant)
+        context = self.client.features.inspect(messages=messages, model=self.variant, aggregate_by="mean")
         self.feature_store["lookup_features"][run] = list(context.lookup().items())[:num_features]
         self.feature_store["top_features"][run] = context.top(num_features)
         
@@ -160,7 +160,7 @@ class Agent():
                 if prop.strip():
                     prop = prop.split(":")[0]  # get short form of property. eg. "cooperation"
                     property_features = self.client.features.search(prop, model=self.variant, top_k=num_features) # get features for property
-                    context = self.client.features.inspect(messages=messages, model=self.variant, features=property_features) # test model with property features
+                    context = self.client.features.inspect(messages=messages, model=self.variant, features=property_features, aggregate_by="mean") # test model with property features
                     # retrieve the top k activating property features in the context:
                     search_features.append({"property": prop, "features": context.top(num_features)})
 
