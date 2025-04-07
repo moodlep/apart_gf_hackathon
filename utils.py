@@ -139,33 +139,37 @@ def parse_lookup_features(features):
         feature_name = feature[1].name
         parsed_features.append((feature_id, feature_name))
     return parsed_features
-    
-def save_parse_features(experiment_id, folder, log_str, feature_store):
+
+
+def parse_features(experiment_id, feature_store, run_idx):
     """FeatureActivations(
     0: (Feature("Syntactical delimiters and special characters in structured text"), 309)
     1: (Feature("Mechanical repetition of tokens in system outputs"), 254)
     2: (Feature("Game theory concepts involving cooperation versus competition"), 247)
     Where Goodfire Feature has uuid: UUID, label: str, index_in_sae: int
-    search_features = {run_id: [{"property":str, "features":FeatureActvations}]}
+    search_features = {round_id: [{"property":str, "features":FeatureActvations}]}
     """
-    timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
-
-    structured_data = []
-    for run in feature_store.keys():
-        for property_features in feature_store[run]:  # list of dicts {"property":str, "features":FeatureActvations}
+    structured_features_data = []
+    for round in feature_store.keys():
+        for property_features in feature_store[round]:  # list of dicts {"property":str, "features":FeatureActvations}
             for feature_activation in property_features["features"]:
                 entry = {
                     "experiment_id": experiment_id,
-                    "run_id": run,
+                    "run_idx": run_idx,
+                    "round_id": round,
                     "property": property_features["property"],
                     "feature": feature_activation.feature,
                     "activation": feature_activation.activation
                 }
-                structured_data.append(entry)
-        
+                structured_features_data.append(entry)
+    return structured_features_data
+
+    
+def save_parse_features(experiment_id, folder, log_str, structured_features_data):
+    timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
     # Save structured data as pickle
     with open(f"{folder}_exp_{experiment_id}_agent_{log_str}_{timestr}_features.pickle", 'wb') as f:
-        pickle.dump(structured_data, f)
+        pickle.dump(structured_features_data, f)
 
     # with open(f"{folder}_run{run}_agent_{log_str}_{timestr}_features.csv", 'w') as f:
 
