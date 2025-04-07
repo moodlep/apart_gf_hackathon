@@ -262,7 +262,9 @@ def run_simulations(num_rounds, agents_strategies, agents_steering, sim_type, fo
         for i, agent in enumerate(agents):
             print(f"------------------Agent A_{i}------------------")
             print(agents[i].game_history)
-            agents[i].add_feature_stores(experiment_id, agents_search_features_store, agents_features_store, run_idx)
+            agents[i].add_feature_stores(experiment_id, agents_features_store=agents_features_store, 
+                                         agents_search_features_store=agents_search_features_store, 
+                                         run_idx=run_idx)
             print("**********")
             print(agents[i].log)
     timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -379,12 +381,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Prisoner's Dilemma simulation.")
     parser.add_argument('--num_rounds', default=1, type=int,
                         help="Number of game iterations.")
+    parser.add_argument('--num_runs', default=10, type=int,
+                        help="Number of runs per experiment.")
     parser.add_argument('--sim_type', default="prompt", type=str,
                         help="Simulation type.")
     parser.add_argument('--model', default="openai/gtp40-mini", type=str,
                         help="Agent's model")
     args = parser.parse_args()
     num_rounds = args.num_rounds
+    num_runs = args.num_runs
     sim_type = args.sim_type
     agents_strategies = ["AC", "AD"]
     
@@ -408,4 +413,4 @@ if __name__ == '__main__':
                                                     agents_steering=agents_steering, 
                                                     sim_type=sim_type, folder=folder, 
                                                     experiment_id=experiment_str,
-                                                    num_runs=5)
+                                                    num_runs=num_runs)
