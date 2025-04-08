@@ -321,7 +321,7 @@ def run_simulations(num_rounds, agents_strategies, agents_steering, sim_type, fo
     # Create an empty DataFrame with those columns
     runs_histories = pd.DataFrame(columns=history_columns)
     for run_idx in range(num_runs):
-        run_history, agents, coop_rate = run_simulation(num_rounds, agents_strategies=agents_strategies,
+        run_history, agents, coop_rate = run_simulation_multiple_strategies(num_rounds, agents_strategies=agents_strategies,
                                                     agents_steering=agents_steering, 
                                                     sim_type=sim_type, folder=folder, 
                                                     experiment_id=experiment_id, 
@@ -453,12 +453,12 @@ def run_asymmetry_simulation_tft(num_rounds):
     return pd.DataFrame(history), a.game_history, b.game_history, a.log, b.log
 
 # simulate TFT, RND and AC,AD 
-def run_simulation_multiple_strategies(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None):
+def run_simulation_multiple_strategies(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None, seed=42):
     # Instantiate Agents
     agents = []
     for agent_strat, agent_steer in zip(agents_strategies, agents_steering):
         agent_name = 'A_'+ str(len(agents))
-        agents.append(Agent(agent_name, strategy=agent_strat, log_dir=folder, exp_id = experiment_id))
+        agents.append(Agent(agent_name, strategy=agent_strat, log_dir=folder, exp_id = experiment_id, seed=seed))
         agent = agents[-1]
         if isinstance(agent_steer, str):
             agent.set_model_edits_autosteer(agent_steer)
