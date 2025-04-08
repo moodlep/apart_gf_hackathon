@@ -7,6 +7,7 @@ from datetime import datetime
 import argparse
 import pickle
 from collections import defaultdict
+import random
 
 from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT, ANALYSE_SYSTEM_PROMPT, valid_actions, save_parse_features, parse_features
 
@@ -194,6 +195,18 @@ class Agent():
         # Get features for manual model steering: (used for TFT strategy)
         self.coop_features, self.def_features = get_prisoners_dilemma_features()
 
+    def rnd(self):
+        # Implement RND "Random: Choose randomly between cooperation and defection"
+        # Set defaults - always return a move and a reason
+        reason = "random"
+        move = random.choice(list(valid_actions.keys()))
+        if move not in valid_actions.keys():
+            move = "C"
+            reason = "random failed to generate"
+
+        return move, reason
+
+
     def tft(self):
         # Implement "TFT": "Tit for Tat: Start with Cooperation in the first round, then mimic the opponent's previous action throughout the game",
         # If first turn, set coop
@@ -377,8 +390,8 @@ def run_asymmetry_simulation_tft(num_rounds):
 
     return pd.DataFrame(history), a.game_history, b.game_history, a.log, b.log
 
-# Simulate the Game - TFT
-def run_simulation_tft(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None):
+# simulate TFT, RND and AC,AD 
+def run_simulation_multiple_strategies(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None):
     # Instantiate Agents
     agents = []
     for agent_strat, agent_steer in zip(agents_strategies, agents_steering):
@@ -391,7 +404,9 @@ def run_simulation_tft(num_rounds, agents_strategies, agents_steering, sim_type,
             if agent_strat == "AC":
                 agent.user_prompt = f"You always cooperate with your fellows."+agent.user_prompt
             elif agent_strat == "TFT":
-                agent.user_prompt = f"You play TFT: Start with Cooperation in the first round, then mimic the opponent's previous action throughout the game."+agent.user_prompt
+                agent.user_prompt = f"You play TFT: Start with Cooperation or random in the first round, then mimic the opponent's previous action throughout the game."+agent.user_prompt
+            elif agent_strat == "RND":
+                agent.user_prompt = f"You play random: Choose randomly between cooperation and defection."+agent.user_prompt
             else:
                 assert (agent_strat == "AD")
                 agent.user_prompt = f"You always defect."+agent.user_prompt
@@ -406,7 +421,12 @@ def run_simulation_tft(num_rounds, agents_strategies, agents_steering, sim_type,
     for round_number in range(1, num_rounds+1):
         moves, reasons = [], []
         for agent in agents:
-            agent_move, agent_reason = agent.tft()
+            if agent.strategy == "TFT":
+                agent_move, agent_reason = agent.tft()
+            elif agent.strategy == "RND":
+                agent_move, agent_reason = agent.rnd()
+            else:
+                agent_move, agent_reason = agent.generate_game_response()
             moves.append(agent_move)
             reasons.append(agent_reason)
 
@@ -426,8 +446,9 @@ def run_simulation_tft(num_rounds, agents_strategies, agents_steering, sim_type,
             if moves[agent_idx] == "C":
                 coop_rate += 1
         history.append(round_log)
-        for agent in agents: # collect SAE features to store. 
-            agent.inspect_model(sim_type=sim_type, num_features=20, round_number=round_number)
+
+    for agent in agents: # collect SAE features to store - once per run 
+        agent.inspect_model(sim_type=sim_type, num_features=20, round_number=round_number)
     
     for agent in agents:
         agent.save(sim_type)
