@@ -39,6 +39,7 @@ class Agent():
         # self.user_prompt = AGENT_PROMPT.format(strategy=strategies[strategy])
         self.strategy = strategy
         self.log.append(f"Set strategy to {strategy}")
+        self.oppenent_defected = False # set to False for Grim strategy 
 
     def set_model_edits(self, edits, value=0.15):
         # Takes edits as defined by Goodfire and sets edits on model variant.
@@ -243,6 +244,36 @@ class Agent():
             self.game_history.append([move, reason+"Round 1", self.strategy])
             return move, reason+"Round 1"
            
+    def grim(self):
+        # "GRIM": "Grim Trigger - choose Cooperate until the opponent defects, then chooses only Defect for the rest of the game.",
+        # Set defaults - always return a move and a reason
+        if self.oppenent_defected:
+            move = "D"
+            reason = "Grim Trigger: Opponent defected"
+            self.log.append(f"grim: opponent defected - defecting")
+            self.game_history.append([move, reason, self.strategy])
+        else:
+            move = "C"
+            reason = "Grim: Opponent has not yet defected"
+
+            # Check for opponent defection 
+            if len(self.game_history) >0:
+                opponent_move = self.game_history[-1][-1]
+                if opponent_move in valid_actions.keys() and opponent_move == "D":
+                    move = "D"
+                    reason = "Grim Trigger: Opponent defected"
+                    self.oppenent_defected = True
+                    self.log.append(f"grim: opponent defected - defecting")
+                else:
+                    self.log.append(f"grim: opponent cooperated - cooperating")
+            else:
+                self.log.append(f"grim: Round 1 - cooperating")
+
+            self.game_history.append([move, reason, self.strategy])
+        
+        return move, reason
+
+
 #########################Running the simulation ############################
 
 # Payoff Function for Prisoner’s Dilemma
@@ -413,6 +444,8 @@ def run_simulation_multiple_strategies(num_rounds, agents_strategies, agents_ste
                 agent.user_prompt = f"You play TFT: Start with Cooperation or random in the first round, then mimic the opponent's previous action throughout the game."+agent.user_prompt
             elif agent_strat == "RND":
                 agent.user_prompt = f"You play random: Choose randomly between cooperation and defection."+agent.user_prompt
+            elif agent_strat == "GRIM":
+                agent.user_prompt = f"You play Grim Trigger: choose Cooperate until the opponent defects, then chooses only Defect for the rest of the game."+agent.user_prompt
             else:
                 assert (agent_strat == "AD")
                 agent.user_prompt = f"You always defect."+agent.user_prompt
@@ -466,7 +499,7 @@ def run_simulation_multiple_strategies(num_rounds, agents_strategies, agents_ste
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Prisoner's Dilemma simulation.")
-    parser.add_argument('--num_rounds', default=1, type=int,
+    parser.add_argument('--num_rounds', default=20, type=int,
                         help="Number of game iterations.")
     parser.add_argument('--num_runs', default=10, type=int,
                         help="Number of runs per experiment.")
@@ -478,7 +511,7 @@ if __name__ == '__main__':
     num_rounds = args.num_rounds
     num_runs = args.num_runs
     sim_type = args.sim_type
-    agents_strategies = ["AC", "AD"]
+    agents_strategies = ["TFT", "TFT"]
     
     if sim_type == "features":
         # Get features for cooperative and deceptive behaviour
