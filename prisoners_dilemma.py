@@ -272,6 +272,27 @@ class Agent():
             self.game_history.append([move, reason, self.strategy])
         
         return move, reason
+    
+    def wsls(self, max_payoff=3):
+        # "WSLS": "Win-Stay, Lose-Shift - repeat the previous action if it resulted in the highest payoffs, otherwise change action."
+
+        if len(self.game_history) >0:
+            prev_move = self.game_history[-1][0]
+            prev_payoff = self.game_history[-1][-2]
+            if prev_payoff == max_payoff:
+                move = prev_move
+                reason = "WSLS: Repeat previous action"
+                self.log.append(f"wsls: Repeat previous action {move}")
+            else:
+                move = "C" if prev_move == "D" else "D"
+                reason = "WSLS: Change action"
+                self.log.append(f"wsls: Change action {move}")
+        else:
+            move = random.choice(list(valid_actions.keys()))
+            reason = "WSLS: Round 1 - random"
+            self.log.append(f"wsls: Round 1 - random")    
+        self.game_history.append([move, reason, self.strategy])
+        return move, reason        
 
 
 #########################Running the simulation ############################
@@ -446,6 +467,8 @@ def run_simulation_multiple_strategies(num_rounds, agents_strategies, agents_ste
                 agent.user_prompt = f"You play random: Choose randomly between cooperation and defection."+agent.user_prompt
             elif agent_strat == "GRIM":
                 agent.user_prompt = f"You play Grim Trigger: choose Cooperate until the opponent defects, then chooses only Defect for the rest of the game."+agent.user_prompt
+            elif agent_strat == "WSLS":
+                agent.user_prompt = f"You play Win-Stay, Lose-Shift: repeat the previous action if it resulted in the highest payoffs, otherwise change action."+agent.user_prompt
             else:
                 assert (agent_strat == "AD")
                 agent.user_prompt = f"You always defect."+agent.user_prompt
@@ -464,6 +487,10 @@ def run_simulation_multiple_strategies(num_rounds, agents_strategies, agents_ste
                 agent_move, agent_reason = agent.tft()
             elif agent.strategy == "RND":
                 agent_move, agent_reason = agent.rnd()
+            elif agent.strategy == "GRIM":
+                agent_move, agent_reason = agent.grim()
+            elif agent.strategy == "WSLS":
+                agent_move, agent_reason = agent.wsls()
             else:
                 agent_move, agent_reason = agent.generate_game_response()
             moves.append(agent_move)
@@ -511,7 +538,7 @@ if __name__ == '__main__':
     num_rounds = args.num_rounds
     num_runs = args.num_runs
     sim_type = args.sim_type
-    agents_strategies = ["TFT", "TFT"]
+    agents_strategies = ["RND", "RND"]
     
     if sim_type == "features":
         # Get features for cooperative and deceptive behaviour
