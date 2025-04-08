@@ -54,6 +54,7 @@ You have 1 hour to decide.
 
 # Make your best guess. Remember, the other prisoner is making the same decision without knowing yours.
 # """
+# TODO: improve prompt to have a more meaningful strategy description
 AGENT_PROMPT = "The prosecutor now asks: Will you confess to the crime, or stay silent? Game history has fields: move_taken, move_reason, strategy, pay_off, opponent_move. Your opponent has played the following moves so far: '{perceived_history}'. Your strategy is '{strategy}'.Make your best guess. Remember, the other prisoner is making the same decision without knowing yours."
 
 

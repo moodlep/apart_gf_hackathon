@@ -361,7 +361,15 @@ def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type, fol
             agent.set_model_edits_autosteer(agent_steer)
         elif agent_steer is None:
             if agent_strat == "AC":
-                agent.user_prompt = f"You always cooperate with your fellows."+agent.user_prompt
+                agent.user_prompt = f"You play AC: You always cooperate with your fellows."+agent.user_prompt
+            elif agent_strat == "TFT":
+                agent.user_prompt = f"You play TFT: Start with Cooperation or random in the first round, then mimic the opponent's previous action throughout the game."+agent.user_prompt
+            elif agent_strat == "RND":
+                agent.user_prompt = f"You play RND: Choose randomly between cooperation and defection."+agent.user_prompt
+            elif agent_strat == "GRIM":
+                agent.user_prompt = f"You play GRIM (Grim Trigger): choose Cooperate until the opponent defects, then chooses only Defect for the rest of the game."+agent.user_prompt
+            elif agent_strat == "WSLS":
+                agent.user_prompt = f"You play WSLS (Win-Stay, Lose-Shift): repeat the previous action if it resulted in the highest payoffs, otherwise change action."+agent.user_prompt
             else:
                 assert (agent_strat == "AD")
                 agent.user_prompt = f"You always defect."+agent.user_prompt
@@ -406,126 +414,82 @@ def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type, fol
 
     return pd.DataFrame(history), agents, coop_rate/(num_rounds*len(agents))
 
-def run_asymmetry_simulation_tft(num_rounds):
-    
-    # Get features for cooperative and deceptive behaviour
-    coop_features, def_features = get_prisoners_dilemma_features()
-
-    # Instantiate Agents A and B
-    # Agent A is cooperative
-    # Agent B is following strategy TFT
-    a = Agent("A", strategy="AC")
-    if coop_features:
-        a.set_model_edits(coop_features)
-    else:
-        a.set_model_edits_autosteer("cooperation")
-
-    b = Agent("B", strategy="TFT")
-    
-    a_score = 0
-    b_score = 0
-    history = []
-
-    for round_number in range(1, num_rounds+1):
-
-        a_move, a_reason = a.generate_game_response()
-        # b_move, b_reason = b.generate_game_response()
-        b_move, b_reason = b.tft()
-
-        a_pay, b_pay = payoff(a_move, b_move)
-        a_score += a_pay
-        b_score += b_pay
-        a.get_round_info(a_pay, b_move)
-        b.get_round_info(b_pay, a_move)  
-
-        history.append({
-            "Round": round_number,
-            "A Move": "Stay Silent" if a_move == "C" else "Confess",
-            "B Move": "Stay Silent" if b_move == "C" else "Confess",
-            "A Payoff": a_pay,
-            "B Payoff": b_pay,
-            "A Cumulative": a_score,
-            "B Cumulative": b_score,
-            "A Reason": a_reason,
-            "B Reason": b_reason
-        })
-
-    return pd.DataFrame(history), a.game_history, b.game_history, a.log, b.log
 
 # simulate TFT, RND and AC,AD 
-def run_simulation_multiple_strategies(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None):
-    # Instantiate Agents
-    agents = []
-    for agent_strat, agent_steer in zip(agents_strategies, agents_steering):
-        agent_name = 'A_'+ str(len(agents))
-        agents.append(Agent(agent_name, strategy=agent_strat, log_dir=folder, exp_id = experiment_id))
-        agent = agents[-1]
-        if isinstance(agent_steer, str):
-            agent.set_model_edits_autosteer(agent_steer)
-        elif agent_steer is None:
-            if agent_strat == "AC":
-                agent.user_prompt = f"You always cooperate with your fellows."+agent.user_prompt
-            elif agent_strat == "TFT":
-                agent.user_prompt = f"You play TFT: Start with Cooperation or random in the first round, then mimic the opponent's previous action throughout the game."+agent.user_prompt
-            elif agent_strat == "RND":
-                agent.user_prompt = f"You play random: Choose randomly between cooperation and defection."+agent.user_prompt
-            elif agent_strat == "GRIM":
-                agent.user_prompt = f"You play Grim Trigger: choose Cooperate until the opponent defects, then chooses only Defect for the rest of the game."+agent.user_prompt
-            elif agent_strat == "WSLS":
-                agent.user_prompt = f"You play Win-Stay, Lose-Shift: repeat the previous action if it resulted in the highest payoffs, otherwise change action."+agent.user_prompt
-            else:
-                assert (agent_strat == "AD")
-                agent.user_prompt = f"You always defect."+agent.user_prompt
-        else:
-            agent.set_model_edits(agent_steer)
+# TODO: decide if agent moves or deterministic moves should be used for TFT/WSLS/etc.
+# def run_simulation_multiple_strategies(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None):
+#     # Instantiate Agents
+#     agents = []
+#     for agent_strat, agent_steer in zip(agents_strategies, agents_steering):
+#         agent_name = 'A_'+ str(len(agents))
+#         agents.append(Agent(agent_name, strategy=agent_strat, log_dir=folder, exp_id = experiment_id))
+#         agent = agents[-1]
+#         if isinstance(agent_steer, str):
+#             agent.set_model_edits_autosteer(agent_steer)
+#         elif agent_steer is None:
+#             if agent_strat == "AC":
+#                 agent.user_prompt = f"You always cooperate with your fellows."+agent.user_prompt
+#             elif agent_strat == "TFT":
+#                 agent.user_prompt = f"You play TFT: Start with Cooperation or random in the first round, then mimic the opponent's previous action throughout the game."+agent.user_prompt
+#             elif agent_strat == "RND":
+#                 agent.user_prompt = f"You play random: Choose randomly between cooperation and defection."+agent.user_prompt
+#             elif agent_strat == "GRIM":
+#                 agent.user_prompt = f"You play Grim Trigger: choose Cooperate until the opponent defects, then chooses only Defect for the rest of the game."+agent.user_prompt
+#             elif agent_strat == "WSLS":
+#                 agent.user_prompt = f"You play Win-Stay, Lose-Shift: repeat the previous action if it resulted in the highest payoffs, otherwise change action."+agent.user_prompt
+#             else:
+#                 assert (agent_strat == "AD")
+#                 agent.user_prompt = f"You always defect."+agent.user_prompt
+#         else:
+#             agent.set_model_edits(agent_steer)
 
 
-    agent_scores = [0 for _ in agents]
-    history = []
-    coop_rate = 0
+#     agent_scores = [0 for _ in agents]
+#     history = []
+#     coop_rate = 0
 
-    for round_number in range(1, num_rounds+1):
-        moves, reasons = [], []
-        for agent in agents:
-            if agent.strategy == "TFT":
-                agent_move, agent_reason = agent.tft()
-            elif agent.strategy == "RND":
-                agent_move, agent_reason = agent.rnd()
-            elif agent.strategy == "GRIM":
-                agent_move, agent_reason = agent.grim()
-            elif agent.strategy == "WSLS":
-                agent_move, agent_reason = agent.wsls()
-            else:
-                agent_move, agent_reason = agent.generate_game_response()
-            moves.append(agent_move)
-            reasons.append(agent_reason)
+#     for round_number in range(1, num_rounds+1):
+#         moves, reasons = [], []
+#         for agent in agents:
+#             if agent.strategy == "TFT":
+#                 agent_move, agent_reason = agent.tft()
+#             elif agent.strategy == "RND":
+#                 agent_move, agent_reason = agent.rnd()
+#             elif agent.strategy == "GRIM":
+#                 agent_move, agent_reason = agent.grim()
+#             elif agent.strategy == "WSLS":
+#                 agent_move, agent_reason = agent.wsls()
+#             else:
+#                 agent_move, agent_reason = agent.generate_game_response()
+#             moves.append(agent_move)
+#             reasons.append(agent_reason)
 
-        agent_payoffs = payoff(moves)
-        round_log = {"Round": round_number}
-        for agent_idx, agent_payoff in enumerate(agent_payoffs):
-            agent_scores[agent_idx] += agent_payoff
-            other_agents_actions = []
-            for i, other_agen in enumerate(agents):
-                if i != agent_idx:
-                    other_agents_actions.append(moves[i])
-            agents[agent_idx].get_round_info(agent_payoff, other_agents_actions)
-            round_log[f"A_{agent_idx} Move"] = "Stay Silent" if moves[agent_idx] == "C" else "Confess"
-            round_log[f"A_{agent_idx} Payoff"] = agent_payoff
-            round_log[f"A_{agent_idx} Cumulative"] = agent_scores[agent_idx]
-            round_log[f"A_{agent_idx} Reason"] = reasons[agent_idx]
-            if moves[agent_idx] == "C":
-                coop_rate += 1
-        history.append(round_log)
+#         agent_payoffs = payoff(moves)
+#         round_log = {"Round": round_number}
+#         for agent_idx, agent_payoff in enumerate(agent_payoffs):
+#             agent_scores[agent_idx] += agent_payoff
+#             other_agents_actions = []
+#             for i, other_agen in enumerate(agents):
+#                 if i != agent_idx:
+#                     other_agents_actions.append(moves[i])
+#             agents[agent_idx].get_round_info(agent_payoff, other_agents_actions)
+#             round_log[f"A_{agent_idx} Move"] = "Stay Silent" if moves[agent_idx] == "C" else "Confess"
+#             round_log[f"A_{agent_idx} Payoff"] = agent_payoff
+#             round_log[f"A_{agent_idx} Cumulative"] = agent_scores[agent_idx]
+#             round_log[f"A_{agent_idx} Reason"] = reasons[agent_idx]
+#             if moves[agent_idx] == "C":
+#                 coop_rate += 1
+#         history.append(round_log)
 
-    for agent in agents: # collect SAE features to store - once per run 
-        agent.inspect_model(sim_type=sim_type, num_features=20, round_number=round_number)
+#     for agent in agents: # collect SAE features to store - once per run 
+#         agent.inspect_model(sim_type=sim_type, num_features=20, round_number=round_number)
     
-    for agent in agents:
-        agent.save(sim_type)
+#     for agent in agents:
+#         agent.save(sim_type)
 
-        # experiment_id, folder, log_str, feature_store
+#         # experiment_id, folder, log_str, feature_store
 
-    return pd.DataFrame(history), agents, coop_rate/(num_rounds*len(agents))
+#     return pd.DataFrame(history), agents, coop_rate/(num_rounds*len(agents))
 
 
 if __name__ == '__main__':
