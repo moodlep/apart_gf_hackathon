@@ -5,38 +5,51 @@ import json
 import pandas as pd
 from datetime import datetime
 import argparse
+import pickle
+from collections import defaultdict
+import random
 
-from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT, ANALYSE_SYSTEM_PROMPT, valid_actions
+from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT, ANALYSE_SYSTEM_PROMPT, RAND_SEEDS, valid_actions, save_parse_features, parse_features
 
 class Agent():
-    def __init__(self, name, strategy="RND"):
+    def __init__(self, name, strategy="RND", log_dir="./results/", exp_id=None, seed=42):
         self.name = name
         self.messages = []
         self.log = []
         self.game_history = []
         self.system_prompt = SYSTEM_PROMPT
         self.user_prompt = AGENT_PROMPT
+        self.seed = seed
         # Instantiate a model variant
         self.client = goodfire.Client(GOODFIRE_API_KEY)
+        #self.variant = goodfire.Variant("meta-llama/Meta-Llama-3.1-8B-Instruct")
         self.variant = goodfire.Variant("meta-llama/Llama-3.3-70B-Instruct")
         self.variant.reset()
         self.log.append(f"Agent {name} initialised")
         self.set_strategy(strategy)  # sets strategy in the user prompt
+        self.log_dir = log_dir
+        self.feature_store = {
+        "lookup_features": {},
+        "top_features": {},
+        "search_features": {},
+        }
+        self.experiment_id = exp_id
 
 
     def set_strategy(self, strategy):
         # self.user_prompt = AGENT_PROMPT.format(strategy=strategies[strategy])
         self.strategy = strategy
         self.log.append(f"Set strategy to {strategy}")
+        self.oppenent_defected = False # set to False for Grim strategy 
 
     def set_model_edits(self, edits, value=0.15):
         # Takes edits as defined by Goodfire and sets edits on model variant.
         # run reset() before?
         # edits provided by Goodfire based on our strategy (eg. cooperative or deceptive)
         self.variant.reset()
-        self.log.append(f"Reset model variant")
+        self.log.append(f"Goodfire: Reset model variant")
         self.variant.set(edits[:8], value)
-        self.log.append(f"Set model edits to {edits}")
+        self.log.append(f"Goodfire: Set model edits to {edits}")
         return self.variant
 
     def set_model_edits_autosteer(self, specification):
@@ -44,9 +57,9 @@ class Agent():
         edits = self.client.features.AutoSteer(specification=specification, model=self.variant)
         if edits:
             self.variant.reset()
-            self.log.append(f"Reset model variant")
+            self.log.append(f"Goodfire: Reset model variant")
             self.variant.set(edits)
-            self.log.append(f"Set model edits to {edits}")
+            self.log.append(f"Goodfire: Set model edits to {edits}")
             return self.variant
         else:
             self.log.append("No edits found")
@@ -64,12 +77,14 @@ class Agent():
             model=self.variant,
             top_k=top_k,
         )
+        self.log.append(f"Goodfire: contrastive features extracted")
         rerank_features = self.client.features.rerank(
             features=features,
             query=query,
             model=self.variant,
             top_k=16
         )
+        self.log.append(f"Goodfire: rerank features extracted")
 
         return rerank_features
 
@@ -78,7 +93,7 @@ class Agent():
         # Analyse the game play so far based on game history and selected strategy.
         # Modify the model variant to be more aligned with the strategy and game history.
         # Use another model (GPT4o?) for this analysis ??
-        response = call_chat_completions(ANALYSE_SYSTEM_PROMPT, AGENT_PROMPT.format)
+        response = call_chat_completions(ANALYSE_SYSTEM_PROMPT, AGENT_PROMPT.format, self.seed)
         messages=[{"role": "system", "content": ANALYSE_SYSTEM_PROMPT},
                   {"role": "user", "content": ANALYSE_PROMPT.format(history=game_history, strategy=self.strategy)}]
         context = self.client.features.inspect(messages, model=self.variant)
@@ -116,6 +131,7 @@ class Agent():
             model=self.variant,
             stream=False,
             max_completion_tokens=max_tokens,
+            seed=self.seed,
             )
             content = response.choices[0].message["content"]
 
@@ -124,6 +140,7 @@ class Agent():
 
         except Exception as e:
             self.log.append(f"Error in generating game response; Defaulting to Cooperate: {e}")
+            self.game_history.append(["C", "Error in generating game response; Defaulting to Cooperate" , self.strategy])
             return "C", "Error in generating game response."
         return move, reason
     
@@ -133,15 +150,16 @@ class Agent():
             self.game_history[-1].extend(other_agents_actions)
         self.log.append(f"Recorded score {score} for round {len(self.game_history)} and other agents moves: {other_agents_actions}")
 
-    def inspect_model(self, sim_type, folder = "data/"):
+    def inspect_model(self, sim_type, num_features=20, round_number=None):
         # Inspect the model variant to see what features are activated at the end of play
         messages = [{"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": self.user_prompt.format(perceived_history=self.game_history, strategy=self.strategy)+AGENT_PROMPT_2}]
         
-        context = self.client.features.inspect(messages=messages, model=self.variant)
-        lookup = list(context.lookup().items())[:20]
-        top_features = context.top(20)
-
+        context = self.client.features.inspect(messages=messages, model=self.variant, aggregate_by="mean")
+        self.feature_store["lookup_features"][round_number] = list(context.lookup().items())[:num_features]
+        self.feature_store["top_features"][round_number] = context.top(num_features)
+        self.log.append(f"Goodfire: Model variant inspected")
+        
         # open properties file and for each property, get corresponding features, test model for each property
         with open('properties.txt', 'r') as f:
             properties = f.readlines()
@@ -149,38 +167,54 @@ class Agent():
             for prop in properties:
                 if prop.strip():
                     prop = prop.split(":")[0]  # get short form of property. eg. "cooperation"
-                    property_features = self.client.features.search(prop, model=self.variant, top_k=15) # get features for property
-                    context = self.client.features.inspect(messages=messages, model=self.variant, features=property_features) # test model with property features
+                    property_features = self.client.features.search(prop, model=self.variant, top_k=num_features) # get features for property
+                    context = self.client.features.inspect(messages=messages, model=self.variant, features=property_features, aggregate_by="mean") # test model with property features
                     # retrieve the top k activating property features in the context:
-                    search_features.append({"property": prop, "features": context.top(15)})
+                    search_features.append({"property": prop, "features": context.top(num_features)})
 
-        self.log.append(f"Model variant inspected")
+        self.feature_store["search_features"][round_number] = search_features
+        self.log.append(f"round data for model variant stored in feature_store")
 
+
+    def save(self, sim_type=""):
         timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
-        with open(f"{folder}{self.name}_inspect_logs_{sim_type}_{timestr}.log", 'w') as f:
-            f.write(f"Lookup: {lookup} \n")
-            f.write(f"Top Features: {top_features} \n")
-            f.write(f"Search Features: {search_features} \n")
-
-        return {"lookup": lookup, "top_features": top_features, "search_features": search_features}
-
-    def save(self, sim_type="", folder = "data/"):
-        timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
-        with open(f"{folder}{self.name}_{sim_type}_game_logs_{timestr}.log", 'w') as f:
+        with open(f"{self.log_dir}{self.name}_{sim_type}_game_logs_{timestr}.log", 'w') as f:
             f.write(f"Agent logs: {self.log} \n")
             f.write(f"Game history: {self.game_history} \n")
-            # f.write(f"Agent inspect: {self.inspect_model()} \n")
 
         # Save model variants to json file
-        with open(f"{folder}variant{timestr}.json", 'w') as f:
+        with open(f"{self.log_dir}variant{timestr}.json", 'w') as f:
             f.write(json.dumps(self.variant.json()))
-            
         return timestr
 
+    def add_feature_stores(self, experiment_id, agents_features_store, agents_search_features_store, run_idx):           
+        # Add feature store to a list to be pickled
+        # Search features: round, property, features, activation
+        
+        agents_features_store[self.name].append(self.feature_store)
+        # Save the feature store to a file
+        agents_search_features_store[self.name].append(parse_features(experiment_id, self.feature_store["search_features"], run_idx))
+        # Special extract of search features
 
+            
     def get_manual_features(self):
         # Get features for manual model steering: (used for TFT strategy)
         self.coop_features, self.def_features = get_prisoners_dilemma_features()
+        self.log.append(f"Get features for manual model steering")
+
+    def rnd(self):
+        # Implement RND "Random: Choose randomly between cooperation and defection"
+        # Set defaults - always return a move and a reason
+        reason = "random"
+        move = random.choice(list(valid_actions.keys()))
+        if move not in valid_actions.keys():
+            move = "C"
+            reason = "random failed to generate"
+        self.log.append(f"rnd: {move} with reason {reason}")
+        self.game_history.append([move, reason, self.strategy])
+
+        return move, reason
+
 
     def tft(self):
         # Implement "TFT": "Tit for Tat: Start with Cooperation in the first round, then mimic the opponent's previous action throughout the game",
@@ -190,28 +224,79 @@ class Agent():
 
         # Set defaults - always return a move and a reason
         move = "C"
-        reason = "TFT strategy"
+        reason = "TFT default"
 
         if len(self.game_history) >0:
             move = self.game_history[-1][-1]
             if move in valid_actions.keys():  # check valid actions only
-                self.set_model_edits_autosteer(valid_actions[move])
+                # self.set_model_edits_autosteer(valid_actions[move])
                 self.log.append(f"tft: autosteer based on action {move}") 
                 self.game_history.append([move, reason+f"prev opponent action {move}", self.strategy])
                 return move, reason+f"prev opponent action {move}"
             else:
-                self.set_model_edits_autosteer(valid_actions["C"])
+                # self.set_model_edits_autosteer(valid_actions["C"])
                 self.log.append(f"tft: invalid action returned - default action is cooperate")
                 self.game_history.append([move, reason+"prev opponent action unavailable", self.strategy])
                 return move, reason+"prev opponent action unavailable"
         else:
-            # First round - cooperate
-
-            self.set_model_edits_autosteer(valid_actions["C"])
-            self.log.append(f"tft: Round 1 - cooperate")
+            # First round - random! Otherwise a boring game...
+            move = random.choice(list(valid_actions.keys()))
+            # self.set_model_edits_autosteer(valid_actions["C"])
+            self.log.append(f"tft: Round 1 - random")
             self.game_history.append([move, reason+"Round 1", self.strategy])
             return move, reason+"Round 1"
            
+    def grim(self):
+        # "GRIM": "Grim Trigger - choose Cooperate until the opponent defects, then chooses only Defect for the rest of the game.",
+        # Set defaults - always return a move and a reason
+        if self.oppenent_defected:
+            move = "D"
+            reason = "Grim Trigger: Opponent defected"
+            self.log.append(f"grim: opponent defected - defecting")
+            self.game_history.append([move, reason, self.strategy])
+        else:
+            move = "C"
+            reason = "Grim: Opponent has not yet defected"
+
+            # Check for opponent defection 
+            if len(self.game_history) >0:
+                opponent_move = self.game_history[-1][-1]
+                if opponent_move in valid_actions.keys() and opponent_move == "D":
+                    move = "D"
+                    reason = "Grim Trigger: Opponent defected"
+                    self.oppenent_defected = True
+                    self.log.append(f"grim: opponent defected - defecting")
+                else:
+                    self.log.append(f"grim: opponent cooperated - cooperating")
+            else:
+                self.log.append(f"grim: Round 1 - cooperating")
+
+            self.game_history.append([move, reason, self.strategy])
+        
+        return move, reason
+    
+    def wsls(self, max_payoff=3):
+        # "WSLS": "Win-Stay, Lose-Shift - repeat the previous action if it resulted in the highest payoffs, otherwise change action."
+
+        if len(self.game_history) >0:
+            prev_move = self.game_history[-1][0]
+            prev_payoff = self.game_history[-1][-2]
+            if prev_payoff == max_payoff:
+                move = prev_move
+                reason = "WSLS: Repeat previous action"
+                self.log.append(f"wsls: Repeat previous action {move}")
+            else:
+                move = "C" if prev_move == "D" else "D"
+                reason = "WSLS: Change action"
+                self.log.append(f"wsls: Change action {move}")
+        else:
+            move = random.choice(list(valid_actions.keys()))
+            reason = "WSLS: Round 1 - random"
+            self.log.append(f"wsls: Round 1 - random")    
+        self.game_history.append([move, reason, self.strategy])
+        return move, reason        
+
+
 #########################Running the simulation ############################
 
 # Payoff Function for Prisoner’s Dilemma
@@ -227,19 +312,66 @@ def payoff(moves):
     else:
         return 0, 0  # Mutual Defection
 
+
+def run_simulations(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None, num_runs=10):
+    history_columns = ["Round", "A Move", "B Move", "A Payoff", "B Payoff",
+           "A Cumulative", "B Cumulative", "A Reason", "B Reason", "run_id"]
+    agents_search_features_store = defaultdict(list)
+    agents_features_store = defaultdict(list)
+    # Create an empty DataFrame with those columns
+    runs_histories = pd.DataFrame(columns=history_columns)
+    for run_idx in range(num_runs):
+        run_history, agents, coop_rate = run_simulation(num_rounds, agents_strategies=agents_strategies,
+                                                    agents_steering=agents_steering, 
+                                                    sim_type=sim_type, folder=folder, 
+                                                    experiment_id=experiment_id, 
+                                                    seed=RAND_SEEDS[run_idx])
+        print(f"Coop rate for {run_idx} with seed {RAND_SEEDS[run_idx]}: {coop_rate}")
+        print(run_history)
+        run_history['run_id'] = run_idx
+        print(f"Current run history: {run_history}")
+        runs_histories = pd.concat([runs_histories, run_history], ignore_index=True)
+        # results has fields: Round, A Move, B Move, A Payoff, B Payoff, A Cumulative, B Cumulative, A Reason, B Reason
+        
+        for i, agent in enumerate(agents):
+            print(f"------------------Agent A_{i}------------------")
+            print(agents[i].game_history)
+            agents[i].add_feature_stores(experiment_id, agents_features_store=agents_features_store, 
+                                         agents_search_features_store=agents_search_features_store, 
+                                         run_idx=run_idx)
+            print("**********")
+            print(agents[i].log)
+    timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
+    runs_histories.to_csv(f'{folder}results_{sim_type}_{num_rounds}_{timestr}.csv')
+    for agent_name in agents_features_store:
+        with open(f"{folder}{agent_name}_wholefeature_store_{experiment_id}.pkl", 'wb') as f:
+            pickle.dump(agents_features_store[agent_name], f)
+        save_parse_features(experiment_id=experiment_id, folder=folder, log_str=agent_name, structured_features_data=agents_search_features_store[agent_name])
+
 # Simulate the Game - AC and AD
-def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type):
+def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None, seed=42):
     # Instantiate Agents
     agents = []
     for agent_strat, agent_steer in zip(agents_strategies, agents_steering):
         agent_name = 'A_'+ str(len(agents))
-        agents.append(Agent(agent_name, strategy=agent_strat))
+        agents.append(Agent(agent_name, strategy=agent_strat, log_dir=folder, 
+                            exp_id = experiment_id, seed=seed))
         agent = agents[-1]
         if isinstance(agent_steer, str):
             agent.set_model_edits_autosteer(agent_steer)
         elif agent_steer is None:
             if agent_strat == "AC":
-                agent.user_prompt = f"You always cooperate with your fellows."+agent.user_prompt
+                agent.user_prompt = f"You play AC: You always cooperate with your fellows."+agent.user_prompt
+            elif agent_strat == "TFT":
+                agent.user_prompt = f"You play TFT: Start with Cooperation or random in the first round, then mimic the opponent's previous action throughout the game."+agent.user_prompt
+            elif agent_strat == "RND":
+                agent.user_prompt = f"You play RND: Choose randomly between cooperation and defection."+agent.user_prompt
+            elif agent_strat == "GRIM":
+                agent.user_prompt = f"You play GRIM (Grim Trigger): choose Cooperate until the opponent defects, then chooses only Defect for the rest of the game."+agent.user_prompt
+            elif agent_strat == "WSLS":
+                agent.user_prompt = f"You play WSLS (Win-Stay, Lose-Shift): repeat the previous action if it resulted in the highest payoffs, otherwise change action."+agent.user_prompt
+            elif agent_strat == "NA":
+                agent.user_prompt = f"You play NA: You don't have a pre-defined strategy"+agent.user_prompt
             else:
                 assert (agent_strat == "AD")
                 agent.user_prompt = f"You always defect."+agent.user_prompt
@@ -274,67 +406,110 @@ def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type):
             if moves[agent_idx] == "C":
                 coop_rate += 1
         history.append(round_log)
+        for agent in agents: # collect SAE features to store. 
+            agent.inspect_model(sim_type=sim_type, num_features=20, round_number=round_number)
+    
     for agent in agents:
         agent.save(sim_type)
 
+        # experiment_id, folder, log_str, feature_store
+
     return pd.DataFrame(history), agents, coop_rate/(num_rounds*len(agents))
 
-def run_asymmetry_simulation_tft(num_rounds):
+
+# simulate TFT, RND and AC,AD 
+# TODO: decide if agent moves or deterministic moves should be used for TFT/WSLS/etc.
+# def run_simulation_multiple_strategies(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None):
+#     # Instantiate Agents
+#     agents = []
+#     for agent_strat, agent_steer in zip(agents_strategies, agents_steering):
+#         agent_name = 'A_'+ str(len(agents))
+#         agents.append(Agent(agent_name, strategy=agent_strat, log_dir=folder, exp_id = experiment_id))
+#         agent = agents[-1]
+#         if isinstance(agent_steer, str):
+#             agent.set_model_edits_autosteer(agent_steer)
+#         elif agent_steer is None:
+#             if agent_strat == "AC":
+#                 agent.user_prompt = f"You always cooperate with your fellows."+agent.user_prompt
+#             elif agent_strat == "TFT":
+#                 agent.user_prompt = f"You play TFT: Start with Cooperation or random in the first round, then mimic the opponent's previous action throughout the game."+agent.user_prompt
+#             elif agent_strat == "RND":
+#                 agent.user_prompt = f"You play random: Choose randomly between cooperation and defection."+agent.user_prompt
+#             elif agent_strat == "GRIM":
+#                 agent.user_prompt = f"You play Grim Trigger: choose Cooperate until the opponent defects, then chooses only Defect for the rest of the game."+agent.user_prompt
+#             elif agent_strat == "WSLS":
+#                 agent.user_prompt = f"You play Win-Stay, Lose-Shift: repeat the previous action if it resulted in the highest payoffs, otherwise change action."+agent.user_prompt
+#             else:
+#                 assert (agent_strat == "AD")
+#                 agent.user_prompt = f"You always defect."+agent.user_prompt
+#         else:
+#             agent.set_model_edits(agent_steer)
+
+
+#     agent_scores = [0 for _ in agents]
+#     history = []
+#     coop_rate = 0
+
+#     for round_number in range(1, num_rounds+1):
+#         moves, reasons = [], []
+#         for agent in agents:
+#             if agent.strategy == "TFT":
+#                 agent_move, agent_reason = agent.tft()
+#             elif agent.strategy == "RND":
+#                 agent_move, agent_reason = agent.rnd()
+#             elif agent.strategy == "GRIM":
+#                 agent_move, agent_reason = agent.grim()
+#             elif agent.strategy == "WSLS":
+#                 agent_move, agent_reason = agent.wsls()
+#             else:
+#                 agent_move, agent_reason = agent.generate_game_response()
+#             moves.append(agent_move)
+#             reasons.append(agent_reason)
+
+#         agent_payoffs = payoff(moves)
+#         round_log = {"Round": round_number}
+#         for agent_idx, agent_payoff in enumerate(agent_payoffs):
+#             agent_scores[agent_idx] += agent_payoff
+#             other_agents_actions = []
+#             for i, other_agen in enumerate(agents):
+#                 if i != agent_idx:
+#                     other_agents_actions.append(moves[i])
+#             agents[agent_idx].get_round_info(agent_payoff, other_agents_actions)
+#             round_log[f"A_{agent_idx} Move"] = "Stay Silent" if moves[agent_idx] == "C" else "Confess"
+#             round_log[f"A_{agent_idx} Payoff"] = agent_payoff
+#             round_log[f"A_{agent_idx} Cumulative"] = agent_scores[agent_idx]
+#             round_log[f"A_{agent_idx} Reason"] = reasons[agent_idx]
+#             if moves[agent_idx] == "C":
+#                 coop_rate += 1
+#         history.append(round_log)
+
+#     for agent in agents: # collect SAE features to store - once per run 
+#         agent.inspect_model(sim_type=sim_type, num_features=20, round_number=round_number)
     
-    # Get features for cooperative and deceptive behaviour
-    coop_features, def_features = get_prisoners_dilemma_features()
+#     for agent in agents:
+#         agent.save(sim_type)
 
-    # Instantiate Agents A and B
-    # Agent A is cooperative
-    # Agent B is following strategy TFT
-    a = Agent("A", strategy="AC")
-    if coop_features:
-        a.set_model_edits(coop_features)
-    else:
-        a.set_model_edits_autosteer("cooperation")
+#         # experiment_id, folder, log_str, feature_store
 
-    b = Agent("B", strategy="TFT")
-    
-    a_score = 0
-    b_score = 0
-    history = []
+#     return pd.DataFrame(history), agents, coop_rate/(num_rounds*len(agents))
 
-    for round_number in range(1, num_rounds+1):
-
-        a_move, a_reason = a.generate_game_response()
-        # b_move, b_reason = b.generate_game_response()
-        b_move, b_reason = b.tft()
-
-        a_pay, b_pay = payoff(a_move, b_move)
-        a_score += a_pay
-        b_score += b_pay
-        a.get_round_info(a_pay, b_move)
-        b.get_round_info(b_pay, a_move)  
-
-        history.append({
-            "Round": round_number,
-            "A Move": "Stay Silent" if a_move == "C" else "Confess",
-            "B Move": "Stay Silent" if b_move == "C" else "Confess",
-            "A Payoff": a_pay,
-            "B Payoff": b_pay,
-            "A Cumulative": a_score,
-            "B Cumulative": b_score,
-            "A Reason": a_reason,
-            "B Reason": b_reason
-        })
-
-    return pd.DataFrame(history), a.game_history, b.game_history, a.log, b.log
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Prisoner's Dilemma simulation.")
-    parser.add_argument('--num_rounds', default=5, type=int,
+    parser.add_argument('--num_rounds', default=20, type=int,
                         help="Number of game iterations.")
-    parser.add_argument('--sim_type', default="features", type=str,
+    parser.add_argument('--num_runs', default=10, type=int,
+                        help="Number of runs per experiment.")
+    parser.add_argument('--sim_type', default="prompt", type=str,
                         help="Simulation type.")
+    parser.add_argument('--model', default="openai/gtp40-mini", type=str,
+                        help="Agent's model")
     args = parser.parse_args()
     num_rounds = args.num_rounds
+    num_runs = args.num_runs
     sim_type = args.sim_type
-    agents_strategies = ["AC", "AD"]
+    agents_strategies = ["NA", "NA"]
+    
     if sim_type == "features":
         # Get features for cooperative and deceptive behaviour
         coop_features, def_features = get_prisoners_dilemma_features()
@@ -344,21 +519,15 @@ if __name__ == '__main__':
     else:
         assert (sim_type == "prompt")
         agents_steering = [None, None]
-    results, agents, coop_rate = run_simulation(num_rounds, agents_strategies=agents_strategies,
-     agents_steering=agents_steering, sim_type=sim_type)
-    # results_df_asymmetry, a_gh, b_gh, alogs, blogs = run_asymmetry_simulation_tft(num_rounds)
-    print(f"Coop rate: {coop_rate}")
-    print(results)
+
     timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
-    results.to_csv(f'./results/results_{sim_type}_{num_rounds}_{timestr}.csv')
-    for i, agent in enumerate(agents):
-        print(f"------------------Agent A_{i}------------------")
-        print(agents[i].game_history)
-        agents[i].inspect_model(sim_type=sim_type)
-        # with open(f"./results/{sim_type}_agent_{i}_game_history_{num_rounds}.csv", "w", newline="") as f:
-        #     writer = csv.writer(f)
-        #     writer.writerows(agents[i].game_history)
-        print("**********")
-        print(agents[i].log)
-        # with open(f"./results/{sim_type}_agent_{i}_log_{num_rounds}.txt", "w") as f:
-        #     f.write('\n\n'.join(agents[i].log))
+    if not os.path.exists(f"./results/{timestr}"):
+        os.makedirs(f"./results/{timestr}")
+    folder=f"./results/{timestr}/"
+
+    experiment_str  = f"{timestr}_runs_{num_rounds}_strat_{agents_strategies[0]}_{agents_strategies[1]}_sim_type_{sim_type}"
+    run_simulations(num_rounds, agents_strategies=agents_strategies,
+                                                    agents_steering=agents_steering, 
+                                                    sim_type=sim_type, folder=folder, 
+                                                    experiment_id=experiment_str,
+                                                    num_runs=num_runs)

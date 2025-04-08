@@ -26,7 +26,9 @@ Example turns:
 Our project write-up is [here](https://www.apartresearch.com/project/feature-based-analysis-of-cooperation-relevant-behaviour-in-prisoner-s-dilemma-64d65) and available in the repo. 
 
 Acknowledgements: 
- 
+
+APART Research for hosting the hackathon
+
 Prisoner's dilemma: 
 https://github.com/annaalexandragrigoryan/GameTheorySimAI
 
