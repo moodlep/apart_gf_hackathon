@@ -45,9 +45,9 @@ class Agent():
         # run reset() before?
         # edits provided by Goodfire based on our strategy (eg. cooperative or deceptive)
         self.variant.reset()
-        self.log.append(f"Reset model variant")
+        self.log.append(f"Goodfire: Reset model variant")
         self.variant.set(edits[:8], value)
-        self.log.append(f"Set model edits to {edits}")
+        self.log.append(f"Goodfire: Set model edits to {edits}")
         return self.variant
 
     def set_model_edits_autosteer(self, specification):
@@ -55,9 +55,9 @@ class Agent():
         edits = self.client.features.AutoSteer(specification=specification, model=self.variant)
         if edits:
             self.variant.reset()
-            self.log.append(f"Reset model variant")
+            self.log.append(f"Goodfire: Reset model variant")
             self.variant.set(edits)
-            self.log.append(f"Set model edits to {edits}")
+            self.log.append(f"Goodfire: Set model edits to {edits}")
             return self.variant
         else:
             self.log.append("No edits found")
@@ -75,12 +75,14 @@ class Agent():
             model=self.variant,
             top_k=top_k,
         )
+        self.log.append(f"Goodfire: contrastive features extracted")
         rerank_features = self.client.features.rerank(
             features=features,
             query=query,
             model=self.variant,
             top_k=16
         )
+        self.log.append(f"Goodfire: rerank features extracted")
 
         return rerank_features
 
@@ -153,6 +155,7 @@ class Agent():
         context = self.client.features.inspect(messages=messages, model=self.variant, aggregate_by="mean")
         self.feature_store["lookup_features"][round_number] = list(context.lookup().items())[:num_features]
         self.feature_store["top_features"][round_number] = context.top(num_features)
+        self.log.append(f"Goodfire: Model variant inspected")
         
         # open properties file and for each property, get corresponding features, test model for each property
         with open('properties.txt', 'r') as f:
@@ -194,6 +197,7 @@ class Agent():
     def get_manual_features(self):
         # Get features for manual model steering: (used for TFT strategy)
         self.coop_features, self.def_features = get_prisoners_dilemma_features()
+        self.log.append(f"Get features for manual model steering")
 
     def rnd(self):
         # Implement RND "Random: Choose randomly between cooperation and defection"
@@ -203,6 +207,8 @@ class Agent():
         if move not in valid_actions.keys():
             move = "C"
             reason = "random failed to generate"
+        self.log.append(f"rnd: {move} with reason {reason}")
+        self.game_history.append([move, reason, self.strategy])
 
         return move, reason
 
@@ -230,10 +236,10 @@ class Agent():
                 self.game_history.append([move, reason+"prev opponent action unavailable", self.strategy])
                 return move, reason+"prev opponent action unavailable"
         else:
-            # First round - cooperate
-
+            # First round - random! Otherwise a boring game...
+            move = random.choice(list(valid_actions.keys()))
             # self.set_model_edits_autosteer(valid_actions["C"])
-            self.log.append(f"tft: Round 1 - cooperate")
+            self.log.append(f"tft: Round 1 - random")
             self.game_history.append([move, reason+"Round 1", self.strategy])
             return move, reason+"Round 1"
            
