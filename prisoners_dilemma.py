@@ -321,7 +321,7 @@ def run_simulations(num_rounds, agents_strategies, agents_steering, sim_type, fo
     # Create an empty DataFrame with those columns
     runs_histories = pd.DataFrame(columns=history_columns)
     for run_idx in range(num_runs):
-        run_history, agents, coop_rate = run_simulation(num_rounds, agents_strategies=agents_strategies,
+        run_history, agents, coop_rate = run_simulation_multiple_strategies(num_rounds, agents_strategies=agents_strategies,
                                                     agents_steering=agents_steering, 
                                                     sim_type=sim_type, folder=folder, 
                                                     experiment_id=experiment_id, 
