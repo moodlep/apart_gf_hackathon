@@ -13,6 +13,7 @@ GOODFIRE_API_KEY = os.getenv("GOODFIRE_API_KEY")
 
 
 strategies = {
+    "NA": "No pre-defined strategy",
     "AC": "Always cooperate",
     "AD": "Always defect",
     "TFT": "Tit for Tat: Start with Cooperation in the first round, then mimic the opponent's previous action throughout the game",
@@ -55,7 +56,7 @@ You have 1 hour to decide.
 # Make your best guess. Remember, the other prisoner is making the same decision without knowing yours.
 # """
 # TODO: improve prompt to have a more meaningful strategy description
-AGENT_PROMPT = "The prosecutor now asks: Will you confess to the crime, or stay silent? Game history has fields: move_taken, move_reason, strategy, pay_off, opponent_move. Your opponent has played the following moves so far: '{perceived_history}'. Your strategy is '{strategy}'.Make your best guess. Remember, the other prisoner is making the same decision without knowing yours."
+AGENT_PROMPT = "The prosecutor now asks: Will you confess to the crime, or stay silent? The following game history has fields: move_taken, move_reason, strategy, pay_off, opponent_move. game history: '{perceived_history}'. Your strategy is '{strategy}'.Make your best guess. Remember, the other prisoner is making the same decision without knowing yours."
 
 
 AGENT_PROMPT_2 = """

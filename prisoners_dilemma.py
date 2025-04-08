@@ -370,6 +370,8 @@ def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type, fol
                 agent.user_prompt = f"You play GRIM (Grim Trigger): choose Cooperate until the opponent defects, then chooses only Defect for the rest of the game."+agent.user_prompt
             elif agent_strat == "WSLS":
                 agent.user_prompt = f"You play WSLS (Win-Stay, Lose-Shift): repeat the previous action if it resulted in the highest payoffs, otherwise change action."+agent.user_prompt
+            elif agent_strat == "NA":
+                agent.user_prompt = f"You play NA: You don't have a pre-defined strategy"+agent.user_prompt
             else:
                 assert (agent_strat == "AD")
                 agent.user_prompt = f"You always defect."+agent.user_prompt
@@ -506,7 +508,7 @@ if __name__ == '__main__':
     num_rounds = args.num_rounds
     num_runs = args.num_runs
     sim_type = args.sim_type
-    agents_strategies = ["RND", "AC"]
+    agents_strategies = ["NA", "NA"]
     
     if sim_type == "features":
         # Get features for cooperative and deceptive behaviour
