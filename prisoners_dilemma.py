@@ -8,16 +8,17 @@ import argparse
 import pickle
 from collections import defaultdict
 
-from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT, ANALYSE_SYSTEM_PROMPT, valid_actions, save_parse_features, parse_features
+from utils import call_chat_completions, get_prisoners_dilemma_features, SYSTEM_PROMPT, AGENT_PROMPT, AGENT_PROMPT_2, GOODFIRE_API_KEY, ANALYSE_PROMPT, ANALYSE_SYSTEM_PROMPT, RAND_SEEDS, valid_actions, save_parse_features, parse_features
 
 class Agent():
-    def __init__(self, name, strategy="RND", log_dir="./results/", exp_id=None):
+    def __init__(self, name, strategy="RND", log_dir="./results/", exp_id=None, seed=42):
         self.name = name
         self.messages = []
         self.log = []
         self.game_history = []
         self.system_prompt = SYSTEM_PROMPT
         self.user_prompt = AGENT_PROMPT
+        self.seed = seed
         # Instantiate a model variant
         self.client = goodfire.Client(GOODFIRE_API_KEY)
         #self.variant = goodfire.Variant("meta-llama/Meta-Llama-3.1-8B-Instruct")
@@ -88,7 +89,7 @@ class Agent():
         # Analyse the game play so far based on game history and selected strategy.
         # Modify the model variant to be more aligned with the strategy and game history.
         # Use another model (GPT4o?) for this analysis ??
-        response = call_chat_completions(ANALYSE_SYSTEM_PROMPT, AGENT_PROMPT.format)
+        response = call_chat_completions(ANALYSE_SYSTEM_PROMPT, AGENT_PROMPT.format, self.seed)
         messages=[{"role": "system", "content": ANALYSE_SYSTEM_PROMPT},
                   {"role": "user", "content": ANALYSE_PROMPT.format(history=game_history, strategy=self.strategy)}]
         context = self.client.features.inspect(messages, model=self.variant)
@@ -251,8 +252,9 @@ def run_simulations(num_rounds, agents_strategies, agents_steering, sim_type, fo
         run_history, agents, coop_rate = run_simulation(num_rounds, agents_strategies=agents_strategies,
                                                     agents_steering=agents_steering, 
                                                     sim_type=sim_type, folder=folder, 
-                                                    experiment_id=experiment_id)
-        print(f"Coop rate for {run_idx}: {coop_rate}")
+                                                    experiment_id=experiment_id, 
+                                                    seed=RAND_SEEDS[run_idx])
+        print(f"Coop rate for {run_idx} with seed {RAND_SEEDS[run_idx]}: {coop_rate}")
         print(run_history)
         run_history['run_id'] = run_idx
         print(f"Current run history: {run_history}")
@@ -275,12 +277,13 @@ def run_simulations(num_rounds, agents_strategies, agents_steering, sim_type, fo
         save_parse_features(experiment_id=experiment_id, folder=folder, log_str=agent_name, structured_features_data=agents_search_features_store[agent_name])
 
 # Simulate the Game - AC and AD
-def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None):
+def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type, folder, experiment_id=None, seed=42):
     # Instantiate Agents
     agents = []
     for agent_strat, agent_steer in zip(agents_strategies, agents_steering):
         agent_name = 'A_'+ str(len(agents))
-        agents.append(Agent(agent_name, strategy=agent_strat, log_dir=folder, exp_id = experiment_id))
+        agents.append(Agent(agent_name, strategy=agent_strat, log_dir=folder, 
+                            exp_id = experiment_id, seed=seed))
         agent = agents[-1]
         if isinstance(agent_steer, str):
             agent.set_model_edits_autosteer(agent_steer)

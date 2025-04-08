@@ -67,10 +67,16 @@ ANALYSE_SYSTEM_PROMPT = "You are a real human being with fears, doubts and hopes
 
 ANALYSE_PROMPT = "Analyse the game of prisoners dilemma <history> and the strategy adopted <strategy>. Based on our scores, should we change strategy? If so, what strategy should we adopt? Return only the strategy code "
 
+RAND_SEEDS = [3928401841, 1463205220, 284675839, 2823129987, 3390827484, 1164904423, 4034763721, 2661141416, 1196728129, 2721633942,
+ 2405706932, 3951872221, 1270536371, 2043762446, 211203216, 3737205297, 3179998441, 3943658721, 2528651839, 2948304091,
+ 292570726, 1329225059, 2641556501, 957745222, 2897512057, 3540315563, 3310225409, 325316504, 3723179053, 1722857283,
+ 1322167239, 2845793781, 2345767189, 978253500, 1891854572, 2314378477, 2006314410, 1107034400, 1110592343, 348474417,
+ 1030103081, 3331133665, 3280118314, 2926923420, 4020974344, 4193855973, 196745102, 3587773895, 2001332890, 401180412]
+
 # If we need an openai cient, let's create it here
 # Define function to call GPT-4o
 
-def call_chat_completions(system_prompt, user_prompt):
+def call_chat_completions(system_prompt, user_prompt, seed=42):
     api_key = os.getenv("OPENAI_API_KEY")
     openai.api_key = api_key
     openai_client = OpenAI()
@@ -81,7 +87,8 @@ def call_chat_completions(system_prompt, user_prompt):
   ]
     completion = openai_client.chat.completions.create(
         model=model,
-        messages=messages
+        messages=messages,
+        seed=seed,
     )
     return completion.choices[0].message.content
 
