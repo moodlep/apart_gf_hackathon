@@ -131,6 +131,7 @@ class Agent():
             model=self.variant,
             stream=False,
             max_completion_tokens=max_tokens,
+            seed=self.seed,
             )
             content = response.choices[0].message["content"]
 
