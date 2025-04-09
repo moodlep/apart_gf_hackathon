@@ -343,6 +343,7 @@ def run_simulations(num_rounds, agents_strategies, agents_steering, sim_type, fo
             print(agents[i].log)
 
         # Save after each run incase we want to stop the simulation
+        # TODO: turn this into proper checkpointing 
         for agent_name in agents_features_store:
             with open(f"{folder}{agent_name}_wholefeature_store_{experiment_id}_{run_idx}.pkl", 'wb') as f:
                 pickle.dump(agents_features_store[agent_name], f)
