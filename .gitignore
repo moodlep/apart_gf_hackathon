@@ -1,2 +1,7 @@
 .env
 *.pyc
+.DS_Store
+.vscode/launch.json
+*.zip
+results/*
+*.png
