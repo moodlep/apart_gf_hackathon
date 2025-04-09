@@ -341,6 +341,13 @@ def run_simulations(num_rounds, agents_strategies, agents_steering, sim_type, fo
                                          run_idx=run_idx)
             print("**********")
             print(agents[i].log)
+
+        # Save after each run incase we want to stop the simulation
+        for agent_name in agents_features_store:
+            with open(f"{folder}{agent_name}_wholefeature_store_{experiment_id}_{run_idx}.pkl", 'wb') as f:
+                pickle.dump(agents_features_store[agent_name], f)
+            save_parse_features(experiment_id=experiment_id, folder=folder, log_str=agent_name, structured_features_data=agents_search_features_store[agent_name], run=run_idx)
+
     timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
     runs_histories.to_csv(f'{folder}results_{sim_type}_{num_rounds}_{timestr}.csv')
     for agent_name in agents_features_store:
@@ -496,11 +503,11 @@ def run_simulation(num_rounds, agents_strategies, agents_steering, sim_type, fol
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Prisoner's Dilemma simulation.")
-    parser.add_argument('--num_rounds', default=20, type=int,
+    parser.add_argument('--num_rounds', default=10, type=int,
                         help="Number of game iterations.")
-    parser.add_argument('--num_runs', default=10, type=int,
+    parser.add_argument('--num_runs', default=5, type=int,
                         help="Number of runs per experiment.")
-    parser.add_argument('--sim_type', default="prompt", type=str,
+    parser.add_argument('--sim_type', default="features", type=str,
                         help="Simulation type.")
     parser.add_argument('--model', default="openai/gtp40-mini", type=str,
                         help="Agent's model")
@@ -508,14 +515,14 @@ if __name__ == '__main__':
     num_rounds = args.num_rounds
     num_runs = args.num_runs
     sim_type = args.sim_type
-    agents_strategies = ["NA", "NA"]
+    agents_strategies = ["AC", "AD"]
     
     if sim_type == "features":
         # Get features for cooperative and deceptive behaviour
         coop_features, def_features = get_prisoners_dilemma_features()
         agents_steering = [coop_features, def_features]
     elif sim_type == "autosteer":
-        agents_steering = ["cooperation", "defection"]
+        agents_steering = ["cooperation", "deception"]
     else:
         assert (sim_type == "prompt")
         agents_steering = [None, None]

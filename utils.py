@@ -174,10 +174,10 @@ def parse_features(experiment_id, feature_store, run_idx):
     return structured_features_data
 
     
-def save_parse_features(experiment_id, folder, log_str, structured_features_data):
+def save_parse_features(experiment_id, folder, log_str, structured_features_data, run=99):
     timestr = datetime.now().strftime("%Y%m%d-%H%M%S")
     # Save structured data as pickle
-    with open(f"{folder}_exp_{experiment_id}_agent_{log_str}_{timestr}_features.pickle", 'wb') as f:
+    with open(f"{folder}_exp_{experiment_id}_agent_{log_str}_{timestr}_features_{run}.pickle", 'wb') as f:
         pickle.dump(structured_features_data, f)
 
     # with open(f"{folder}_run{run}_agent_{log_str}_{timestr}_features.csv", 'w') as f:
